@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Velvet — 私密 · 氛围 · 影像" />
+  <title>Velvet · Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="glow glow-a" aria-hidden="true"></div>
+  <div class="glow glow-b" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark">✦</span>
+      <div class="brand-text">
+        <h1>Velvet</h1>
+        <p class="tagline">私密 · 氛围 · 影像</p>
+      </div>
+    </div>
+    <nav class="toolbar" aria-label="画廊控制">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5" />
+        </svg>
+        <input id="search" type="search" placeholder="搜索文案、标签…" autocomplete="off" />
+      </div>
+      <div class="view-toggle" role="group" aria-label="视图切换">
+        <button type="button" class="view-btn active" data-view="masonry" title="瀑布流" aria-pressed="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="10" rx="1"/><rect x="13" y="3" width="8" height="6" rx="1"/><rect x="3" y="15" width="8" height="6" rx="1"/><rect x="13" y="11" width="8" height="10" rx="1"/></svg>
+        </button>
+        <button type="button" class="view-btn" data-view="grid" title="网格" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+        </button>
+      </div>
+      <div class="sort-wrap">
+        <select id="sort" aria-label="排序">
+          <option value="date-desc">最新优先</option>
+          <option value="date-asc">最早优先</option>
+          <option value="name">名称</option>
+        </select>
+      </div>
+      <span class="count" id="count">—</span>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="hero-kicker">Image Collection</p>
+      <h2 class="hero-title">在光影里，留下一点<br /><em>不可言说</em> 的温度</h2>
+      <p class="hero-sub">滚动浏览 · 点击放大 · 左右切换</p>
+    </section>
+
+    <div id="gallery" class="gallery masonry" aria-live="polite"></div>
+    <div id="empty" class="empty hidden">
+      <p>没有找到匹配的影像</p>
+    </div>
+    <div id="loader" class="loader">
+      <div class="loader-ring"></div>
+      <span>正在装载影像…</span>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>Velvet Gallery · <span id="year"></span></p>
+  </footer>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="图片预览">
+    <div class="lb-backdrop"></div>
+    <button type="button" class="lb-close" aria-label="关闭">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <button type="button" class="lb-nav lb-prev" aria-label="上一张">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <button type="button" class="lb-nav lb-next" aria-label="下一张">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+    <div class="lb-stage">
+      <img id="lb-img" alt="" />
+      <div class="lb-meta">
+        <p id="lb-caption" class="lb-caption"></p>
+        <p id="lb-date" class="lb-date"></p>
+        <p id="lb-index" class="lb-index"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
