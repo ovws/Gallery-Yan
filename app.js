@@ -154,12 +154,35 @@
 
         btn.appendChild(img);
 
+        var shade = document.createElement("span");
+        shade.className = "shade";
+        shade.setAttribute("aria-hidden", "true");
+        btn.appendChild(shade);
+
+        var glint = document.createElement("span");
+        glint.className = "glint";
+        glint.setAttribute("aria-hidden", "true");
+        btn.appendChild(glint);
+
         if (t) {
           var cap = document.createElement("span");
           cap.className = "cap";
           cap.textContent = t;
           btn.appendChild(cap);
         }
+
+        btn.addEventListener("pointerenter", function () {
+          setGaze(btn);
+        });
+        btn.addEventListener("pointerleave", function () {
+          clearGaze(btn);
+        });
+        btn.addEventListener("focus", function () {
+          setGaze(btn);
+        });
+        btn.addEventListener("blur", function () {
+          clearGaze(btn);
+        });
 
         btn.addEventListener("click", function () {
           openLb(i);
@@ -171,10 +194,81 @@
 
     wall.appendChild(frag);
     observeLazy();
-    // warm the next batch after first paint
+    initSpotlight();
     requestAnimationFrame(function () {
       preloadRange(BOOT_PRELOAD, AHEAD);
     });
+  }
+
+  /** 暧昧核心：注视一张时，其它退后 */
+  function setGaze(btn) {
+    wall.classList.add("is-gazing");
+    var items = wall.querySelectorAll(".item");
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.toggle("is-near", items[i] === btn);
+    }
+  }
+
+  function clearGaze(btn) {
+    if (btn) btn.classList.remove("is-near");
+    // 若焦点还在别的卡片上，不取消整体注视
+    var still = wall.querySelector(".item:hover, .item:focus");
+    if (still) {
+      setGaze(still);
+      return;
+    }
+    wall.classList.remove("is-gazing");
+    var items = wall.querySelectorAll(".item.is-near");
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.remove("is-near");
+    }
+  }
+
+  /** 暖光跟着指针慢慢走 */
+  function initSpotlight() {
+    var spot = document.getElementById("room-spot");
+    if (!spot) return;
+    try {
+      if (window.matchMedia("(pointer: coarse)").matches) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    } catch (e) {}
+
+    var x = window.innerWidth * 0.5;
+    var y = window.innerHeight * 0.35;
+    var tx = x;
+    var ty = y;
+    var running = false;
+
+    function tick() {
+      x += (tx - x) * 0.07;
+      y += (ty - y) * 0.07;
+      document.documentElement.style.setProperty(
+        "--sx",
+        (x / window.innerWidth) * 100 + "%"
+      );
+      document.documentElement.style.setProperty(
+        "--sy",
+        (y / window.innerHeight) * 100 + "%"
+      );
+      if (Math.abs(tx - x) > 0.4 || Math.abs(ty - y) > 0.4) {
+        requestAnimationFrame(tick);
+      } else {
+        running = false;
+      }
+    }
+
+    window.addEventListener(
+      "pointermove",
+      function (e) {
+        tx = e.clientX;
+        ty = e.clientY;
+        if (!running) {
+          running = true;
+          requestAnimationFrame(tick);
+        }
+      },
+      { passive: true }
+    );
   }
 
   function observeLazy() {
@@ -292,7 +386,7 @@
 
   statusEl.textContent = "准备图片…";
 
-  fetch("images.json?v=8", { cache: "no-store" })
+  fetch("images.json?v=9", { cache: "no-store" })
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
