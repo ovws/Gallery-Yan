@@ -2,55 +2,37 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="嫣" />
-  <meta name="theme-color" content="#0e060a" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#12060c" />
   <title>嫣</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.85em' x='50%' text-anchor='middle' font-size='72' fill='%23ff7aa2' font-family='serif'>嫣</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>嫣</text></svg>" />
 </head>
 <body>
-  <!-- pure light layers, no glyphs -->
-  <div class="mood" aria-hidden="true">
-    <div class="mood-vignette"></div>
-    <div class="mood-breath"></div>
-    <div class="mood-spot" id="mood-spot"></div>
-  </div>
-
-  <header class="site-header">
-    <a class="brand" href="./" aria-label="嫣">嫣</a>
-    <div class="view-toggle" role="group" aria-label="视图">
-      <button type="button" class="view-btn active" data-view="large" aria-pressed="true" title="大图">
-        <span class="ico ico-lg"></span>
-      </button>
-      <button type="button" class="view-btn" data-view="small" aria-pressed="false" title="小图">
-        <span class="ico ico-sm"></span>
-      </button>
+  <header class="top">
+    <a class="logo" href="./">嫣</a>
+    <div class="modes" role="group" aria-label="视图">
+      <button type="button" id="btn-large" class="mode on" aria-pressed="true">大图</button>
+      <button type="button" id="btn-small" class="mode" aria-pressed="false">小图</button>
     </div>
   </header>
 
-  <div id="scroller" class="scroller">
-    <div id="gallery" class="gallery view-large" role="list"></div>
+  <main>
+    <div id="wall" class="wall wall-large"></div>
+    <p id="status" class="status">加载中…</p>
+  </main>
+
+  <div id="lb" class="lb" hidden>
+    <button type="button" class="lb-x" id="lb-x" aria-label="关闭"></button>
+    <button type="button" class="lb-p" id="lb-p" aria-label="上一张"></button>
+    <button type="button" class="lb-n" id="lb-n" aria-label="下一张"></button>
+    <img id="lb-img" alt="" />
+    <p id="lb-cap" class="lb-cap"></p>
   </div>
 
-  <div id="loader" class="loader"><div class="loader-dot"></div></div>
-
-  <div id="lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="预览">
-    <div class="lb-backdrop"></div>
-    <button type="button" class="lb-close" aria-label="关闭"></button>
-    <button type="button" class="lb-nav lb-prev" aria-label="上一张"></button>
-    <button type="button" class="lb-nav lb-next" aria-label="下一张"></button>
-    <div class="lb-stage">
-      <div class="lb-frame">
-        <img id="lb-img" alt="" decoding="async" />
-      </div>
-      <p id="lb-name" class="lb-name"></p>
-    </div>
-  </div>
-
-  <script src="app.js" defer></script>
+  <script src="app.js"></script>
 </body>
 </html>

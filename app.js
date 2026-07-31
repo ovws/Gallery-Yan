@@ -1,530 +1,204 @@
 /**
- * 嫣 — virtual grid + motion atmosphere
- * Atmosphere is conveyed by light, tilt, zoom, dimming — not slogans/emoji.
+ * 嫣 — simple gallery that just works
+ * thumbs in list, full image in lightbox
  */
-(() => {
+(function () {
   "use strict";
 
-  const scroller = document.getElementById("scroller");
-  const galleryEl = document.getElementById("gallery");
-  const loaderEl = document.getElementById("loader");
-  const lightbox = document.getElementById("lightbox");
-  const lbImg = document.getElementById("lb-img");
-  const lbName = document.getElementById("lb-name");
-  const moodSpot = document.getElementById("mood-spot");
-
-  let images = [];
-  let current = 0;
-  let viewMode = "large";
-
-  let cols = 1;
-  let cellW = 0;
-  let cellH = 0;
-  let gap = 10;
-  let pad = 12;
-  let totalRows = 0;
-  let scrollRaf = 0;
-  let resizeRaf = 0;
-
-  const ROW_BUFFER = 3;
-  const ASPECT_H_OVER_W = 4 / 3;
-  const reducedMotion = (() => {
-    try {
-      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    } catch (_) {
-      return false;
+  // kill broken service workers from older deploys
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      regs.forEach(function (r) {
+        r.unregister();
+      });
+    });
+    if (window.caches) {
+      caches.keys().then(function (keys) {
+        keys.forEach(function (k) {
+          caches.delete(k);
+        });
+      });
     }
-  })();
-  const finePointer = (() => {
-    try {
-      return window.matchMedia("(pointer: fine)").matches;
-    } catch (_) {
-      return true;
-    }
-  })();
+  }
 
-  /** @type {Map<number, HTMLElement>} */
-  const mounted = new Map();
-  /** base x/y for each mounted card */
-  const bases = new Map();
-  const preloadCache = new Set();
+  var wall = document.getElementById("wall");
+  var statusEl = document.getElementById("status");
+  var btnLarge = document.getElementById("btn-large");
+  var btnSmall = document.getElementById("btn-small");
+  var lb = document.getElementById("lb");
+  var lbImg = document.getElementById("lb-img");
+  var lbCap = document.getElementById("lb-cap");
+  var lbX = document.getElementById("lb-x");
+  var lbP = document.getElementById("lb-p");
+  var lbN = document.getElementById("lb-n");
 
-  let hotIndex = -1;
-  let ptrX = 0;
-  let ptrY = 0;
+  var list = [];
+  var cur = 0;
 
-  function assetUrl(src) {
+  function enc(src) {
     return String(src || "")
-      .replace(/^\//, "")
       .split("/")
-      .map((s) => encodeURIComponent(s))
+      .map(encodeURIComponent)
       .join("/");
   }
 
-  function thumbOf(item) {
-    return (item && (item.thumb || item.src)) || "";
-  }
-
-  function fullOf(item) {
-    return (item && item.src) || "";
-  }
-
-  function displayName(item) {
-    if (item.caption && String(item.caption).trim()) {
-      return String(item.caption).replace(/\s+/g, " ").trim();
-    }
-    let n = item.name || item.src || "";
-    n = n.replace(/^.*[\\/]/, "");
-    n = n.replace(/\.(jpe?g|png|webp|gif)$/i, "");
+  function titleOf(item) {
+    if (item.caption) return String(item.caption).replace(/\s+/g, " ").trim();
+    var n = item.name || item.src || "";
+    n = n.replace(/^.*[\\/]/, "").replace(/\.(jpe?g|png|webp|gif)$/i, "");
     n = n.replace(/^sad_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_/, "");
     n = n.replace(/_\d+_\d+$/, "");
     n = n.replace(/#/g, " #").replace(/\s+/g, " ").trim();
-    return n || "";
+    return n;
   }
 
-  function formatDate(dateStr) {
-    if (!dateStr) return "";
-    const p = String(dateStr).split("-");
-    return p.length >= 3 ? `${p[0]}.${p[1]}.${p[2]}` : "";
+  function thumbOf(item) {
+    return enc(item.thumb || item.src);
   }
 
-  function minColForMode(innerW) {
-    if (viewMode === "small") {
-      if (innerW < 400) return 96;
-      if (innerW < 900) return Math.max(100, innerW * 0.18);
-      return 140;
-    }
-    if (innerW < 500) return 160;
-    if (innerW < 900) return Math.max(200, innerW * 0.28);
-    return 280;
+  function fullOf(item) {
+    return enc(item.src);
   }
 
-  function measure() {
-    const cs = getComputedStyle(scroller);
-    pad = parseFloat(cs.paddingLeft) || 12;
-    gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--gap")) || 10;
-
-    const innerW = Math.max(120, scroller.clientWidth - pad * 2);
-    const minCol = minColForMode(innerW);
-    cols = Math.max(1, Math.floor((innerW + gap) / (minCol + gap)));
-    cellW = (innerW - gap * (cols - 1)) / cols;
-    cellH = cellW * ASPECT_H_OVER_W;
-    totalRows = Math.max(1, Math.ceil(images.length / cols));
-
-    const totalH =
-      images.length === 0 ? 0 : totalRows * cellH + Math.max(0, totalRows - 1) * gap;
-
-    galleryEl.style.height = `${totalH}px`;
-    galleryEl.style.width = `${innerW}px`;
+  function setMode(small) {
+    wall.classList.toggle("wall-small", small);
+    wall.classList.toggle("wall-large", !small);
+    btnLarge.classList.toggle("on", !small);
+    btnSmall.classList.toggle("on", small);
+    btnLarge.setAttribute("aria-pressed", small ? "false" : "true");
+    btnSmall.setAttribute("aria-pressed", small ? "true" : "false");
   }
 
-  function setView(mode) {
-    viewMode = mode === "small" ? "small" : "large";
-    galleryEl.classList.toggle("view-large", viewMode === "large");
-    galleryEl.classList.toggle("view-small", viewMode === "small");
-    document.querySelectorAll(".view-btn").forEach((btn) => {
-      const on = btn.dataset.view === viewMode;
-      btn.classList.toggle("active", on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-    });
-    clearMounted();
-    measure();
-    syncWindow();
-  }
+  function render() {
+    wall.innerHTML = "";
+    var frag = document.createDocumentFragment();
 
-  function clearMounted() {
-    for (const [, el] of mounted) el.remove();
-    mounted.clear();
-    bases.clear();
-    hotIndex = -1;
-    galleryEl.classList.remove("is-focusing");
-  }
+    for (var i = 0; i < list.length; i++) {
+      (function (i) {
+        var item = list[i];
+        var t = titleOf(item);
 
-  function createCard(index) {
-    const item = images[index];
-    const label = displayName(item);
-    const date = formatDate(item.date);
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "item";
+        btn.setAttribute("aria-label", t || "图片 " + (i + 1));
 
-    const card = document.createElement("article");
-    card.className = "card";
-    card.dataset.index = String(index);
-    card.tabIndex = 0;
-    card.setAttribute("role", "listitem");
-    if (label) card.setAttribute("aria-label", label);
+        var img = document.createElement("img");
+        img.src = thumbOf(item);
+        img.alt = t || "";
+        img.loading = "lazy";
+        img.decoding = "async";
+        // first screen a bit faster
+        if (i < 10) img.fetchPriority = "high";
 
-    const wrap = document.createElement("div");
-    wrap.className = "card-img-wrap";
+        btn.appendChild(img);
 
-    const img = document.createElement("img");
-    img.alt = label || "";
-    img.decoding = "async";
-    img.loading = "lazy";
-    img.draggable = false;
-    img.src = assetUrl(thumbOf(item));
-
-    const veil = document.createElement("div");
-    veil.className = "card-veil";
-    veil.setAttribute("aria-hidden", "true");
-
-    const shine = document.createElement("div");
-    shine.className = "card-shine";
-    shine.setAttribute("aria-hidden", "true");
-
-    const nameEl = document.createElement("p");
-    nameEl.className = "card-name";
-    if (label) nameEl.append(document.createTextNode(label));
-    if (date && viewMode === "large") {
-      const d = document.createElement("span");
-      d.className = "card-date";
-      d.textContent = date;
-      nameEl.appendChild(d);
-    }
-
-    wrap.append(img, veil, shine, nameEl);
-    card.appendChild(wrap);
-
-    // motion: attention + tilt
-    card.addEventListener("pointerenter", () => setHot(index, card));
-    card.addEventListener("pointerleave", () => clearHot(index, card));
-    if (finePointer && !reducedMotion) {
-      card.addEventListener("pointermove", (e) => tiltCard(card, e));
-    }
-
-    return card;
-  }
-
-  function applyTransform(card, index, extra = "") {
-    const b = bases.get(index) || { x: 0, y: 0 };
-    card.style.transform = `translate3d(${b.x}px, ${b.y}px, 0)${extra}`;
-  }
-
-  function positionCard(card, index) {
-    const row = Math.floor(index / cols);
-    const col = index % cols;
-    const x = col * (cellW + gap);
-    const y = row * (cellH + gap);
-    bases.set(index, { x, y });
-    card.style.width = `${cellW}px`;
-    card.style.height = `${cellH}px`;
-
-    if (card.classList.contains("is-hot") && finePointer && !reducedMotion) {
-      // keep current tilt; only update base next leave
-      const t = card.dataset.tilt || "";
-      applyTransform(card, index, t);
-    } else {
-      card.dataset.tilt = "";
-      applyTransform(card, index, "");
-    }
-  }
-
-  function tiltCard(card, e) {
-    if (reducedMotion) return;
-    const r = card.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width - 0.5;
-    const py = (e.clientY - r.top) / r.height - 0.5;
-    // soft lean toward pointer — intimate, not flashy
-    const rx = (-py * 9).toFixed(2);
-    const ry = (px * 11).toFixed(2);
-    const lift = " translateZ(18px) scale(1.035)";
-    const extra = ` perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)${lift}`;
-    card.dataset.tilt = extra;
-    const idx = Number(card.dataset.index);
-    applyTransform(card, idx, extra);
-  }
-
-  function setHot(index, card) {
-    hotIndex = index;
-    galleryEl.classList.add("is-focusing");
-    for (const [i, el] of mounted) {
-      el.classList.toggle("is-hot", i === index);
-      if (i !== index) {
-        el.dataset.tilt = "";
-        applyTransform(el, i, "");
-      }
-    }
-    card.classList.add("is-hot");
-  }
-
-  function clearHot(index, card) {
-    if (hotIndex === index) hotIndex = -1;
-    card.classList.remove("is-hot");
-    card.dataset.tilt = "";
-    applyTransform(card, index, "");
-
-    // if nothing hot left
-    if (hotIndex < 0) {
-      galleryEl.classList.remove("is-focusing");
-      for (const [i, el] of mounted) {
-        el.classList.remove("is-hot");
-        el.dataset.tilt = "";
-        applyTransform(el, i, "");
-      }
-    }
-  }
-
-  function visibleRange() {
-    if (!images.length || cellH <= 0) return { start: 0, end: -1 };
-
-    const st = scroller.scrollTop;
-    const vh = scroller.clientHeight || window.innerHeight;
-    const rowH = cellH + gap;
-
-    let startRow = Math.floor(st / rowH) - ROW_BUFFER;
-    let endRow = Math.ceil((st + vh) / rowH) + ROW_BUFFER;
-    startRow = Math.max(0, startRow);
-    endRow = Math.min(totalRows - 1, Math.max(startRow, endRow));
-
-    const start = startRow * cols;
-    const end = Math.min(images.length - 1, (endRow + 1) * cols - 1);
-    return { start, end };
-  }
-
-  function syncWindow() {
-    const { start, end } = visibleRange();
-
-    if (end < start) {
-      clearMounted();
-      return;
-    }
-
-    for (const [idx, el] of mounted) {
-      if (idx < start || idx > end) {
-        el.remove();
-        mounted.delete(idx);
-        bases.delete(idx);
-        if (hotIndex === idx) {
-          hotIndex = -1;
-          galleryEl.classList.remove("is-focusing");
+        if (t) {
+          var cap = document.createElement("span");
+          cap.className = "cap";
+          cap.textContent = t;
+          btn.appendChild(cap);
         }
-      }
+
+        btn.addEventListener("click", function () {
+          openLb(i);
+        });
+
+        frag.appendChild(btn);
+      })(i);
     }
 
-    const frag = document.createDocumentFragment();
-    let added = false;
-    for (let i = start; i <= end; i++) {
-      let el = mounted.get(i);
-      if (!el) {
-        el = createCard(i);
-        mounted.set(i, el);
-        frag.appendChild(el);
-        added = true;
-      }
-      positionCard(el, i);
-      if (hotIndex === i) el.classList.add("is-hot");
-    }
-    if (added) galleryEl.appendChild(frag);
+    wall.appendChild(frag);
   }
 
-  function onScroll() {
-    if (scrollRaf) return;
-    scrollRaf = requestAnimationFrame(() => {
-      scrollRaf = 0;
-      syncWindow();
-    });
+  function openLb(i) {
+    cur = i;
+    showLb();
+    lb.hidden = false;
+    document.body.classList.add("lb-on");
   }
 
-  function onResize() {
-    if (resizeRaf) return;
-    resizeRaf = requestAnimationFrame(() => {
-      resizeRaf = 0;
-      measure();
-      syncWindow();
-    });
+  function closeLb() {
+    lb.hidden = true;
+    document.body.classList.remove("lb-on");
+    lbImg.removeAttribute("src");
   }
 
-  /* cursor light follows slowly */
-  function initMoodSpot() {
-    if (!moodSpot || !finePointer || reducedMotion) {
-      if (moodSpot) moodSpot.style.opacity = "0.5";
-      return;
-    }
-    let x = window.innerWidth * 0.5;
-    let y = window.innerHeight * 0.35;
-    let tx = x;
-    let ty = y;
-    let active = false;
-
-    const tick = () => {
-      x += (tx - x) * 0.08;
-      y += (ty - y) * 0.08;
-      document.documentElement.style.setProperty("--spot-x", `${(x / window.innerWidth) * 100}%`);
-      document.documentElement.style.setProperty("--spot-y", `${(y / window.innerHeight) * 100}%`);
-      if (Math.abs(tx - x) > 0.5 || Math.abs(ty - y) > 0.5) {
-        requestAnimationFrame(tick);
-      } else {
-        active = false;
-      }
-    };
-
-    window.addEventListener(
-      "pointermove",
-      (e) => {
-        ptrX = e.clientX;
-        ptrY = e.clientY;
-        tx = e.clientX;
-        ty = e.clientY;
-        if (!active) {
-          active = true;
-          requestAnimationFrame(tick);
-        }
-      },
-      { passive: true }
-    );
-  }
-
-  function preloadUrl(url) {
-    if (!url || preloadCache.has(url)) return;
-    preloadCache.add(url);
-    const img = new Image();
-    img.decoding = "async";
-    img.src = url;
-  }
-
-  function preloadNeighbors() {
-    if (!images.length) return;
-    for (const d of [1, -1]) {
-      const idx = (current + d + images.length) % images.length;
-      preloadUrl(assetUrl(fullOf(images[idx])));
-    }
-  }
-
-  function showLightboxImage() {
-    const item = images[current];
+  function showLb() {
+    var item = list[cur];
     if (!item) return;
-    const label = displayName(item);
-    const full = assetUrl(fullOf(item));
-    const thumb = assetUrl(thumbOf(item));
-    lbImg.alt = label;
-    if (lbName) lbName.textContent = label;
-
-    if (lbImg.dataset.full !== full) {
-      lbImg.dataset.full = full;
-      lbImg.src = thumb;
-      const hi = new Image();
-      hi.decoding = "async";
-      hi.onload = () => {
-        if (lbImg.dataset.full === full) lbImg.src = full;
-      };
-      hi.src = full;
-    }
-    preloadNeighbors();
+    var t = titleOf(item);
+    // thumb first, then full
+    var full = fullOf(item);
+    var thumb = thumbOf(item);
+    lbImg.src = thumb;
+    lbImg.alt = t;
+    lbCap.textContent = t;
+    var hi = new Image();
+    hi.onload = function () {
+      if (list[cur] === item) lbImg.src = full;
+    };
+    hi.src = full;
+    // neighbors
+    preload(fullOf(list[(cur + 1) % list.length]));
+    preload(fullOf(list[(cur - 1 + list.length) % list.length]));
   }
 
-  function openLightbox(index) {
-    current = index;
-    showLightboxImage();
-    lightbox.hidden = false;
-    void lightbox.offsetWidth;
-    lightbox.classList.add("open");
-    document.body.classList.add("lb-open");
+  function preload(url) {
+    if (!url) return;
+    var im = new Image();
+    im.src = url;
   }
 
-  function closeLightbox() {
-    lightbox.classList.remove("open");
-    document.body.classList.remove("lb-open");
-    setTimeout(() => {
-      if (!lightbox.classList.contains("open")) {
-        lightbox.hidden = true;
-        lbImg.removeAttribute("src");
-        delete lbImg.dataset.full;
-        if (lbName) lbName.textContent = "";
-      }
-    }, 400);
+  function nav(d) {
+    if (!list.length) return;
+    cur = (cur + d + list.length) % list.length;
+    showLb();
   }
 
-  function nav(delta) {
-    if (!images.length) return;
-    current = (current + delta + images.length) % images.length;
-    showLightboxImage();
-  }
-
-  document.querySelectorAll(".view-btn").forEach((btn) => {
-    btn.addEventListener("click", () => setView(btn.dataset.view));
+  btnLarge.addEventListener("click", function () {
+    setMode(false);
+  });
+  btnSmall.addEventListener("click", function () {
+    setMode(true);
   });
 
-  galleryEl.addEventListener("click", (e) => {
-    const card = e.target.closest(".card");
-    if (!card) return;
-    const idx = Number(card.dataset.index);
-    if (Number.isFinite(idx)) openLightbox(idx);
+  lbX.addEventListener("click", closeLb);
+  lb.addEventListener("click", function (e) {
+    if (e.target === lb) closeLb();
+  });
+  lbP.addEventListener("click", function (e) {
+    e.stopPropagation();
+    nav(-1);
+  });
+  lbN.addEventListener("click", function (e) {
+    e.stopPropagation();
+    nav(1);
   });
 
-  galleryEl.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter" && e.key !== " ") return;
-    const card = e.target.closest(".card");
-    if (!card) return;
-    e.preventDefault();
-    const idx = Number(card.dataset.index);
-    if (Number.isFinite(idx)) openLightbox(idx);
-  });
-
-  lightbox.querySelector(".lb-backdrop").addEventListener("click", closeLightbox);
-  lightbox.querySelector(".lb-close").addEventListener("click", closeLightbox);
-  lightbox.querySelector(".lb-prev").addEventListener("click", () => nav(-1));
-  lightbox.querySelector(".lb-next").addEventListener("click", () => nav(1));
-
-  document.addEventListener("keydown", (e) => {
-    if (!lightbox.classList.contains("open")) return;
-    if (e.key === "Escape") closeLightbox();
+  document.addEventListener("keydown", function (e) {
+    if (lb.hidden) return;
+    if (e.key === "Escape") closeLb();
     if (e.key === "ArrowLeft") nav(-1);
     if (e.key === "ArrowRight") nav(1);
   });
 
-  let touchX = null;
-  lightbox.addEventListener(
-    "touchstart",
-    (e) => {
-      touchX = e.changedTouches[0].screenX;
-    },
-    { passive: true }
-  );
-  lightbox.addEventListener(
-    "touchend",
-    (e) => {
-      if (touchX == null) return;
-      const dx = e.changedTouches[0].screenX - touchX;
-      if (Math.abs(dx) > 48) nav(dx > 0 ? -1 : 1);
-      touchX = null;
-    },
-    { passive: true }
-  );
-
-  scroller.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("resize", onResize, { passive: true });
-
-  function registerSW() {
-    if (!("serviceWorker" in navigator)) return;
-    if (!/^https?:$/.test(location.protocol)) return;
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
-  }
-
-  async function init() {
-    initMoodSpot();
-    try {
-      const res = await fetch("images.json", { cache: "no-cache" });
-      if (!res.ok) throw new Error("images.json " + res.status);
-      const data = await res.json();
+  fetch("images.json?v=6", { cache: "no-store" })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function (data) {
       if (!Array.isArray(data) || !data.length) throw new Error("empty");
-
-      images = data.slice().sort((a, b) => {
-        return (b.date || "").localeCompare(a.date || "") || (b.name || "").localeCompare(a.name || "");
+      list = data.slice().sort(function (a, b) {
+        return String(b.date || "").localeCompare(String(a.date || ""));
       });
-
-      loaderEl.classList.add("hidden");
-      requestAnimationFrame(() => {
-        measure();
-        syncWindow();
-        requestAnimationFrame(() => {
-          measure();
-          syncWindow();
-        });
-      });
-      registerSW();
-    } catch (err) {
+      statusEl.classList.add("hide");
+      statusEl.textContent = "";
+      render();
+    })
+    .catch(function (err) {
       console.error(err);
-      loaderEl.innerHTML = "";
-    }
-  }
-
-  init();
+      statusEl.textContent = "加载失败，请强制刷新（Ctrl+F5）后重试";
+    });
 })();
