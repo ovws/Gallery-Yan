@@ -6,3 +6,6 @@ desktop.ini
 .idea/
 node_modules/
 .cache/
+
+*.png
+

@@ -77,7 +77,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log("");
-  console.log("  Velvet Gallery");
+  console.log("  是嫣嫣呀");
   console.log(`  → http://localhost:${PORT}`);
   console.log(`  → http://127.0.0.1:${PORT}`);
   console.log("  Ctrl+C 退出");

@@ -1,135 +1,84 @@
 /**
- * Velvet Gallery — image showcase
+ * 嫣 — full-width image gallery
+ * 大图 / 小图 via CSS column-width (continuous reflow on resize & zoom)
  */
 (() => {
   "use strict";
 
   const galleryEl = document.getElementById("gallery");
-  const emptyEl = document.getElementById("empty");
   const loaderEl = document.getElementById("loader");
-  const countEl = document.getElementById("count");
-  const searchEl = document.getElementById("search");
-  const sortEl = document.getElementById("sort");
-  const yearEl = document.getElementById("year");
-
   const lightbox = document.getElementById("lightbox");
   const lbImg = document.getElementById("lb-img");
-  const lbCaption = document.getElementById("lb-caption");
-  const lbDate = document.getElementById("lb-date");
-  const lbIndex = document.getElementById("lb-index");
+  const lbName = document.getElementById("lb-name");
 
-  let allImages = [];
-  let filtered = [];
-  let currentIndex = 0;
+  let images = [];
+  let current = 0;
+  let viewMode = "large";
 
-  yearEl.textContent = new Date().getFullYear();
-
-  /** Encode path segments (safe for spaces / unicode if any remain) */
-  function encodePath(path) {
-    return path
+  function assetUrl(src) {
+    return src
+      .replace(/^\//, "")
       .split("/")
-      .map((seg) => encodeURIComponent(seg))
+      .map((s) => encodeURIComponent(s))
       .join("/");
   }
 
-  /** Prefer relative paths so Vercel / local / subpath all work */
-  function assetUrl(src) {
-    return encodePath(src.replace(/^\//, ""));
-  }
-
-  function formatDate(dateStr) {
-    if (!dateStr) return "";
-    const [y, m, d] = dateStr.split("-");
-    return `${y}.${m}.${d}`;
-  }
-
-  function debounce(fn, ms = 180) {
-    let t;
-    return (...args) => {
-      clearTimeout(t);
-      t = setTimeout(() => fn(...args), ms);
-    };
-  }
-
-  function applyFilters() {
-    const q = (searchEl.value || "").trim().toLowerCase();
-    const sort = sortEl.value;
-
-    filtered = allImages.filter((img) => {
-      if (!q) return true;
-      const hay = `${img.caption || ""} ${img.name || ""} ${img.date || ""}`.toLowerCase();
-      return hay.includes(q);
-    });
-
-    filtered.sort((a, b) => {
-      if (sort === "date-desc") {
-        return (b.date || "").localeCompare(a.date || "") || b.name.localeCompare(a.name);
-      }
-      if (sort === "date-asc") {
-        return (a.date || "").localeCompare(b.date || "") || a.name.localeCompare(b.name);
-      }
-      return (a.caption || a.name).localeCompare(b.caption || b.name, "zh");
-    });
-
-    renderGallery();
-  }
-
-  function renderGallery() {
-    galleryEl.innerHTML = "";
-    countEl.textContent = `${filtered.length} 张`;
-
-    if (!filtered.length) {
-      emptyEl.classList.remove("hidden");
-      return;
+  /** 展示用文件名：优先 caption（从原文件名解析的文案），否则清理 name */
+  function displayName(item) {
+    if (item.caption && String(item.caption).trim()) {
+      return String(item.caption).replace(/\s+/g, " ").trim();
     }
-    emptyEl.classList.add("hidden");
+    let n = item.name || item.src || "";
+    n = n.replace(/^.*[\\/]/, "");
+    n = n.replace(/\.(jpe?g|png|webp|gif)$/i, "");
+    n = n.replace(/^sad_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_/, "");
+    n = n.replace(/_\d+_\d+$/, "");
+    n = n.replace(/#/g, " #").replace(/\s+/g, " ").trim();
+    return n || "未命名";
+  }
 
+  function setView(mode) {
+    viewMode = mode === "small" ? "small" : "large";
+    galleryEl.classList.toggle("view-large", viewMode === "large");
+    galleryEl.classList.toggle("view-small", viewMode === "small");
+    document.querySelectorAll(".view-btn").forEach((btn) => {
+      const on = btn.dataset.view === viewMode;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  function render() {
+    galleryEl.innerHTML = "";
     const frag = document.createDocumentFragment();
 
-    filtered.forEach((img, i) => {
+    images.forEach((item, i) => {
+      const label = displayName(item);
       const card = document.createElement("article");
       card.className = "card";
-      card.style.animationDelay = `${Math.min(i * 0.03, 0.6)}s`;
       card.tabIndex = 0;
       card.setAttribute("role", "button");
-      card.setAttribute(
-        "aria-label",
-        img.caption ? `查看：${img.caption}` : `查看图片 ${i + 1}`
-      );
+      card.setAttribute("aria-label", label);
+      card.style.animationDelay = `${Math.min(i * 0.012, 0.6)}s`;
 
       const wrap = document.createElement("div");
       wrap.className = "card-img-wrap";
 
-      const image = document.createElement("img");
-      image.src = assetUrl(img.src);
-      image.alt = img.caption || "影像";
-      image.loading = "lazy";
-      image.decoding = "async";
+      const img = document.createElement("img");
+      img.src = assetUrl(item.src);
+      img.alt = label;
+      img.loading = "lazy";
+      img.decoding = "async";
 
       const veil = document.createElement("div");
       veil.className = "card-veil";
 
-      const shine = document.createElement("div");
-      shine.className = "card-shine";
+      const nameEl = document.createElement("p");
+      nameEl.className = "card-name";
+      nameEl.textContent = label;
+      nameEl.title = label;
 
-      const info = document.createElement("div");
-      info.className = "card-info";
-
-      if (img.caption) {
-        const cap = document.createElement("p");
-        cap.className = "card-caption";
-        cap.textContent = img.caption;
-        info.appendChild(cap);
-      }
-
-      if (img.date) {
-        const date = document.createElement("p");
-        date.className = "card-date";
-        date.textContent = formatDate(img.date);
-        info.appendChild(date);
-      }
-
-      wrap.append(image, veil, shine, info);
+      wrap.append(img, veil, nameEl);
       card.appendChild(wrap);
 
       const open = () => openLightbox(i);
@@ -147,11 +96,19 @@
     galleryEl.appendChild(frag);
   }
 
+  function showLightboxImage() {
+    const item = images[current];
+    if (!item) return;
+    const label = displayName(item);
+    lbImg.src = assetUrl(item.src);
+    lbImg.alt = label;
+    if (lbName) lbName.textContent = label;
+  }
+
   function openLightbox(index) {
-    currentIndex = index;
-    updateLightbox();
+    current = index;
+    showLightboxImage();
     lightbox.hidden = false;
-    // force reflow for transition
     void lightbox.offsetWidth;
     lightbox.classList.add("open");
     document.body.classList.add("lb-open");
@@ -164,55 +121,33 @@
       if (!lightbox.classList.contains("open")) {
         lightbox.hidden = true;
         lbImg.removeAttribute("src");
+        if (lbName) lbName.textContent = "";
       }
-    }, 350);
+    }, 280);
   }
 
-  function updateLightbox() {
-    const img = filtered[currentIndex];
-    if (!img) return;
-    lbImg.src = assetUrl(img.src);
-    lbImg.alt = img.caption || "影像";
-    lbCaption.textContent = img.caption || "";
-    lbDate.textContent = img.date ? formatDate(img.date) : "";
-    lbIndex.textContent = `${currentIndex + 1} / ${filtered.length}`;
+  function nav(delta) {
+    if (!images.length) return;
+    current = (current + delta + images.length) % images.length;
+    showLightboxImage();
   }
 
-  function navLightbox(delta) {
-    if (!filtered.length) return;
-    currentIndex = (currentIndex + delta + filtered.length) % filtered.length;
-    updateLightbox();
-  }
-
-  // View toggle
   document.querySelectorAll(".view-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".view-btn").forEach((b) => {
-        b.classList.remove("active");
-        b.setAttribute("aria-pressed", "false");
-      });
-      btn.classList.add("active");
-      btn.setAttribute("aria-pressed", "true");
-      const view = btn.dataset.view;
-      galleryEl.classList.remove("masonry", "grid");
-      galleryEl.classList.add(view);
-    });
+    btn.addEventListener("click", () => setView(btn.dataset.view));
   });
 
-  // Lightbox controls
   lightbox.querySelector(".lb-backdrop").addEventListener("click", closeLightbox);
   lightbox.querySelector(".lb-close").addEventListener("click", closeLightbox);
-  lightbox.querySelector(".lb-prev").addEventListener("click", () => navLightbox(-1));
-  lightbox.querySelector(".lb-next").addEventListener("click", () => navLightbox(1));
+  lightbox.querySelector(".lb-prev").addEventListener("click", () => nav(-1));
+  lightbox.querySelector(".lb-next").addEventListener("click", () => nav(1));
 
   document.addEventListener("keydown", (e) => {
     if (!lightbox.classList.contains("open")) return;
     if (e.key === "Escape") closeLightbox();
-    if (e.key === "ArrowLeft") navLightbox(-1);
-    if (e.key === "ArrowRight") navLightbox(1);
+    if (e.key === "ArrowLeft") nav(-1);
+    if (e.key === "ArrowRight") nav(1);
   });
 
-  // Touch swipe
   let touchX = null;
   lightbox.addEventListener(
     "touchstart",
@@ -226,26 +161,26 @@
     (e) => {
       if (touchX == null) return;
       const dx = e.changedTouches[0].screenX - touchX;
-      if (Math.abs(dx) > 50) navLightbox(dx > 0 ? -1 : 1);
+      if (Math.abs(dx) > 48) nav(dx > 0 ? -1 : 1);
       touchX = null;
     },
     { passive: true }
   );
 
-  searchEl.addEventListener("input", debounce(applyFilters));
-  sortEl.addEventListener("change", applyFilters);
-
-  // Boot
   async function init() {
+    setView("large");
     try {
       const res = await fetch("images.json");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      allImages = await res.json();
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      images = data.slice().sort((a, b) => {
+        return (b.date || "").localeCompare(a.date || "") || (b.name || "").localeCompare(a.name || "");
+      });
       loaderEl.classList.add("hidden");
-      applyFilters();
+      render();
     } catch (err) {
-      loaderEl.innerHTML = `<p>加载失败：${err.message}</p><p style="margin-top:0.5rem;font-size:0.8rem">请通过本地服务器打开（不要用 file://）</p>`;
       console.error(err);
+      loaderEl.innerHTML = "";
     }
   }
 

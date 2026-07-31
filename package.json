@@ -2,7 +2,7 @@
   "name": "velvet-gallery",
   "version": "1.0.0",
   "private": true,
-  "description": "Velvet — 深色氛围感图片展示站",
+  "description": "是嫣嫣呀 — 甜一点坏一点刚刚好的图片展示站",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
