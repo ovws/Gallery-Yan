@@ -1,6 +1,5 @@
 /**
- * 嫣 — full-width image gallery
- * 大图 / 小图 via CSS column-width (continuous reflow on resize & zoom)
+ * 嫣 — full-width gallery (performance-tuned)
  */
 (() => {
   "use strict";
@@ -10,20 +9,31 @@
   const lightbox = document.getElementById("lightbox");
   const lbImg = document.getElementById("lb-img");
   const lbName = document.getElementById("lb-name");
+  const floatersEl = document.getElementById("floaters");
+  const cursorGlow = document.getElementById("cursor-glow");
+  const scrollProgress = document.getElementById("scroll-progress");
+
+  const TONES = ["tone-rose", "tone-gold", "tone-peach", ""];
+  const EAGER_COUNT = 8;
+  const BATCH = 24;
 
   let images = [];
   let current = 0;
   let viewMode = "large";
+  let reducedMotion = false;
+
+  try {
+    reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (_) {}
 
   function assetUrl(src) {
-    return src
+    return String(src || "")
       .replace(/^\//, "")
       .split("/")
       .map((s) => encodeURIComponent(s))
       .join("/");
   }
 
-  /** 展示用文件名：优先 caption（从原文件名解析的文案），否则清理 name */
   function displayName(item) {
     if (item.caption && String(item.caption).trim()) {
       return String(item.caption).replace(/\s+/g, " ").trim();
@@ -37,6 +47,13 @@
     return n || "未命名";
   }
 
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+    const parts = String(dateStr).split("-");
+    if (parts.length < 3) return "";
+    return `${parts[0]}.${parts[1]}.${parts[2]}`;
+  }
+
   function setView(mode) {
     viewMode = mode === "small" ? "small" : "large";
     galleryEl.classList.toggle("view-large", viewMode === "large");
@@ -48,52 +65,229 @@
     });
   }
 
+  function spawnFloaters() {
+    if (!floatersEl || reducedMotion) return;
+    // fewer particles = less paint
+    const symbols = ["♡", "✿", "✦", "❀"];
+    const n = window.innerWidth < 700 ? 5 : 8;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < n; i++) {
+      const s = document.createElement("span");
+      s.textContent = symbols[i % symbols.length];
+      s.style.left = `${8 + Math.random() * 84}%`;
+      s.style.fontSize = `${0.7 + Math.random() * 0.7}rem`;
+      s.style.animationDuration = `${16 + Math.random() * 14}s`;
+      s.style.animationDelay = `${-Math.random() * 18}s`;
+      s.style.color = i % 2 === 0 ? "#ffb3c1" : "#ff7aa2";
+      frag.appendChild(s);
+    }
+    floatersEl.appendChild(frag);
+  }
+
+  /** Cursor glow: rAF only while pointer is moving */
+  function initCursorGlow() {
+    if (!cursorGlow || window.matchMedia("(pointer: coarse)").matches || reducedMotion) {
+      if (cursorGlow) cursorGlow.style.display = "none";
+      return;
+    }
+    let x = 0;
+    let y = 0;
+    let tx = 0;
+    let ty = 0;
+    let raf = 0;
+    let active = false;
+
+    const tick = () => {
+      x += (tx - x) * 0.14;
+      y += (ty - y) * 0.14;
+      cursorGlow.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      if (Math.abs(tx - x) > 0.4 || Math.abs(ty - y) > 0.4) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        active = false;
+        raf = 0;
+      }
+    };
+
+    window.addEventListener(
+      "pointermove",
+      (e) => {
+        tx = e.clientX;
+        ty = e.clientY;
+        if (!active) {
+          active = true;
+          raf = requestAnimationFrame(tick);
+        }
+      },
+      { passive: true }
+    );
+  }
+
+  function initScrollProgress() {
+    if (!scrollProgress) return;
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const p = max > 0 ? window.scrollY / max : 0;
+      scrollProgress.style.transform = `scaleX(${Math.min(1, Math.max(0, p))})`;
+    };
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(update);
+        }
+      },
+      { passive: true }
+    );
+    update();
+  }
+
+  function createCard(item, i) {
+    const label = displayName(item);
+    const date = formatDate(item.date);
+    const tone = TONES[i % TONES.length];
+
+    const card = document.createElement("article");
+    card.className = "card" + (tone ? ` ${tone}` : "");
+    card.dataset.index = String(i);
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", label);
+    if (!reducedMotion && i < 16) {
+      card.style.animationDelay = `${i * 0.02}s`;
+    } else {
+      card.classList.add("card-static");
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "card-img-wrap";
+
+    const img = document.createElement("img");
+    img.alt = label;
+    img.decoding = "async";
+    img.draggable = false;
+    if (i < EAGER_COUNT) {
+      img.loading = "eager";
+      img.fetchPriority = "high";
+      img.src = assetUrl(item.src);
+    } else {
+      img.loading = "lazy";
+      // defer src via data attribute — IO assigns when near viewport
+      img.dataset.src = assetUrl(item.src);
+    }
+
+    const veil = document.createElement("div");
+    veil.className = "card-veil";
+    veil.setAttribute("aria-hidden", "true");
+
+    const shine = document.createElement("div");
+    shine.className = "card-shine";
+    shine.setAttribute("aria-hidden", "true");
+
+    const nameEl = document.createElement("p");
+    nameEl.className = "card-name";
+    nameEl.append(document.createTextNode(label));
+    if (date) {
+      const d = document.createElement("span");
+      d.className = "card-date";
+      d.textContent = date;
+      nameEl.appendChild(d);
+    }
+    nameEl.title = label;
+
+    wrap.append(img, veil, shine, nameEl);
+    card.appendChild(wrap);
+    return card;
+  }
+
+  /** Lazy-assign img.src for near-viewport cards */
+  function observeLazyImages(root) {
+    const lazy = root.querySelectorAll("img[data-src]");
+    if (!lazy.length) return;
+
+    if (!("IntersectionObserver" in window)) {
+      lazy.forEach((img) => {
+        img.src = img.dataset.src;
+        img.removeAttribute("data-src");
+      });
+      return;
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const img = entry.target;
+          if (img.dataset.src) {
+            img.src = img.dataset.src;
+            img.removeAttribute("data-src");
+          }
+          io.unobserve(img);
+        }
+      },
+      { rootMargin: "400px 0px", threshold: 0.01 }
+    );
+
+    lazy.forEach((img) => io.observe(img));
+  }
+
+  /** Render in batches to avoid long main-thread blocks */
   function render() {
     galleryEl.innerHTML = "";
-    const frag = document.createDocumentFragment();
+    let i = 0;
 
-    images.forEach((item, i) => {
-      const label = displayName(item);
-      const card = document.createElement("article");
-      card.className = "card";
-      card.tabIndex = 0;
-      card.setAttribute("role", "button");
-      card.setAttribute("aria-label", label);
-      card.style.animationDelay = `${Math.min(i * 0.012, 0.6)}s`;
+    const next = () => {
+      const frag = document.createDocumentFragment();
+      const end = Math.min(i + BATCH, images.length);
+      for (; i < end; i++) {
+        frag.appendChild(createCard(images[i], i));
+      }
+      galleryEl.appendChild(frag);
 
-      const wrap = document.createElement("div");
-      wrap.className = "card-img-wrap";
+      if (i < images.length) {
+        requestAnimationFrame(next);
+      } else {
+        observeLazyImages(galleryEl);
+      }
+    };
 
-      const img = document.createElement("img");
-      img.src = assetUrl(item.src);
-      img.alt = label;
-      img.loading = "lazy";
-      img.decoding = "async";
+    next();
+  }
 
-      const veil = document.createElement("div");
-      veil.className = "card-veil";
-
-      const nameEl = document.createElement("p");
-      nameEl.className = "card-name";
-      nameEl.textContent = label;
-      nameEl.title = label;
-
-      wrap.append(img, veil, nameEl);
-      card.appendChild(wrap);
-
-      const open = () => openLightbox(i);
-      card.addEventListener("click", open);
-      card.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          open();
-        }
-      });
-
-      frag.appendChild(card);
+  /** Event delegation — one listener for all cards */
+  function initGalleryEvents() {
+    galleryEl.addEventListener("click", (e) => {
+      const card = e.target.closest(".card");
+      if (!card || !galleryEl.contains(card)) return;
+      const idx = Number(card.dataset.index);
+      if (Number.isFinite(idx)) openLightbox(idx);
     });
 
-    galleryEl.appendChild(frag);
+    galleryEl.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const card = e.target.closest(".card");
+      if (!card || !galleryEl.contains(card)) return;
+      e.preventDefault();
+      const idx = Number(card.dataset.index);
+      if (Number.isFinite(idx)) openLightbox(idx);
+    });
+  }
+
+  function preloadNeighbors() {
+    if (!images.length) return;
+    const idxs = [
+      (current + 1) % images.length,
+      (current - 1 + images.length) % images.length,
+    ];
+    for (const idx of idxs) {
+      const src = assetUrl(images[idx].src);
+      const pre = new Image();
+      pre.decoding = "async";
+      pre.src = src;
+    }
   }
 
   function showLightboxImage() {
@@ -103,6 +297,7 @@
     lbImg.src = assetUrl(item.src);
     lbImg.alt = label;
     if (lbName) lbName.textContent = label;
+    preloadNeighbors();
   }
 
   function openLightbox(index) {
@@ -169,8 +364,12 @@
 
   async function init() {
     setView("large");
+    initGalleryEvents();
+    spawnFloaters();
+    initCursorGlow();
+    initScrollProgress();
     try {
-      const res = await fetch("images.json");
+      const res = await fetch("images.json", { cache: "force-cache" });
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
       images = data.slice().sort((a, b) => {

@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="preload" href="images.json" as="fetch" crossorigin />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.85em' x='50%' text-anchor='middle' font-size='72' fill='%23ff7aa2' font-family='serif'>嫣</text></svg>" />
 </head>
 <body>
@@ -18,7 +19,12 @@
     <div class="grain"></div>
     <div class="glow glow-a"></div>
     <div class="glow glow-b"></div>
+    <div class="glow glow-c"></div>
+    <div class="cursor-glow" id="cursor-glow"></div>
+    <div class="floaters" id="floaters"></div>
   </div>
+
+  <div class="scroll-progress" id="scroll-progress" aria-hidden="true"></div>
 
   <header class="site-header">
     <a class="brand" href="./" aria-label="嫣"><span>嫣</span></a>
@@ -40,6 +46,12 @@
       <div class="loader-dot"></div>
     </div>
   </main>
+
+  <footer class="site-end" aria-hidden="true">
+    <span class="end-line"></span>
+    <span class="end-mark">嫣</span>
+    <span class="end-line"></span>
+  </footer>
 
   <div id="lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="预览">
     <div class="lb-backdrop"></div>
