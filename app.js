@@ -1,11 +1,10 @@
 /**
- * 嫣 — gallery with reserved aspect-ratio + progressive preload
- * Pre-reserves space via tw/th so the wall does not jump while images load.
+ * 嫣嫣最可爱啦 — full-width proportional grid gallery
  */
 (function () {
   "use strict";
 
-  // drop legacy service workers / caches that could serve broken assets
+  // clear broken legacy SW
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations().then(function (regs) {
       regs.forEach(function (r) {
@@ -26,6 +25,7 @@
   var btnLarge = document.getElementById("btn-large");
   var btnSmall = document.getElementById("btn-small");
   var lb = document.getElementById("lb");
+  var lbBg = document.getElementById("lb-bg");
   var lbImg = document.getElementById("lb-img");
   var lbCap = document.getElementById("lb-cap");
   var lbX = document.getElementById("lb-x");
@@ -34,12 +34,10 @@
 
   var list = [];
   var cur = 0;
+  var small = false;
   var preloaded = Object.create(null);
-
-  /** how many thumbs to fully preload before revealing wall */
-  var BOOT_PRELOAD = 12;
-  /** keep this many items ahead preloading while scrolling */
-  var AHEAD = 8;
+  var BOOT = 12;
+  var AHEAD = 10;
 
   function enc(src) {
     return String(src || "")
@@ -66,32 +64,26 @@
     return enc(item.src);
   }
 
-  /** Prefer thumb size; fall back to original; last resort 3:4 */
   function dims(item) {
     var w = item.tw || item.w || 3;
     var h = item.th || item.h || 4;
-    if (!w || !h) {
-      w = 3;
-      h = 4;
-    }
+    if (!w || !h) return { w: 3, h: 4 };
     return { w: w, h: h };
   }
 
-  function setMode(small) {
-    wall.classList.toggle("wall-small", small);
-    wall.classList.toggle("wall-large", !small);
+  function setMode(isSmall) {
+    small = !!isSmall;
+    wall.classList.toggle("is-small", small);
+    wall.classList.toggle("is-large", !small);
     btnLarge.classList.toggle("on", !small);
     btnSmall.classList.toggle("on", small);
     btnLarge.setAttribute("aria-pressed", small ? "false" : "true");
     btnSmall.setAttribute("aria-pressed", small ? "true" : "false");
-    // 切换模式时刷新比例占位
     if (list.length) render();
   }
 
   function preloadUrl(url) {
-    if (!url || preloaded[url]) {
-      return Promise.resolve(url);
-    }
+    if (!url || preloaded[url]) return Promise.resolve(url);
     return new Promise(function (resolve) {
       var im = new Image();
       im.decoding = "async";
@@ -113,6 +105,7 @@
 
   function render() {
     wall.innerHTML = "";
+    wall.classList.remove("is-focus");
     var frag = document.createDocumentFragment();
 
     for (var i = 0; i < list.length; i++) {
@@ -124,11 +117,13 @@
 
         var btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "item";
+        btn.className = "card";
         btn.setAttribute("aria-label", t || "图片 " + (i + 1));
-        // reserve space immediately — prevents column reflow / screen jump
-        // 大图模式保留真实比例；小图模式由 CSS 统一 3:4，手机更整齐
-        if (!wall.classList.contains("wall-small")) {
+
+        // 大图：真实比例；小图：统一 3:4 更整齐
+        if (small) {
+          btn.style.aspectRatio = "3 / 4";
+        } else {
           btn.style.aspectRatio = d.w + " / " + d.h;
         }
 
@@ -139,35 +134,28 @@
         img.decoding = "async";
         img.draggable = false;
 
-        // already preloaded boot set → show immediately; others lazy
-        if (i < BOOT_PRELOAD || preloaded[src]) {
+        if (i < BOOT || preloaded[src]) {
           img.src = src;
-          img.className = "ready";
+          img.className = "is-on";
           if (i < 8) img.fetchPriority = "high";
         } else {
           img.loading = "lazy";
           img.dataset.src = src;
-          // transparent 1x1 keeps layout stable; real src set by IO
           img.src =
             "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
         }
 
-        img.addEventListener("load", function onLoad() {
-          if (img.dataset.src) return; // still placeholder
-          img.classList.add("ready");
+        img.addEventListener("load", function () {
+          if (img.dataset.src) return;
+          img.classList.add("is-on");
         });
 
+        var veil = document.createElement("span");
+        veil.className = "veil";
+        veil.setAttribute("aria-hidden", "true");
+
         btn.appendChild(img);
-
-        var shade = document.createElement("span");
-        shade.className = "shade";
-        shade.setAttribute("aria-hidden", "true");
-        btn.appendChild(shade);
-
-        var glint = document.createElement("span");
-        glint.className = "glint";
-        glint.setAttribute("aria-hidden", "true");
-        btn.appendChild(glint);
+        btn.appendChild(veil);
 
         if (t) {
           var cap = document.createElement("span");
@@ -177,16 +165,19 @@
         }
 
         btn.addEventListener("pointerenter", function () {
-          setGaze(btn);
+          wall.classList.add("is-focus");
+          var cards = wall.querySelectorAll(".card");
+          for (var k = 0; k < cards.length; k++) {
+            cards[k].classList.toggle("is-hot", cards[k] === btn);
+          }
         });
         btn.addEventListener("pointerleave", function () {
-          clearGaze(btn);
-        });
-        btn.addEventListener("focus", function () {
-          setGaze(btn);
-        });
-        btn.addEventListener("blur", function () {
-          clearGaze(btn);
+          btn.classList.remove("is-hot");
+          if (!wall.querySelector(".card:hover, .card:focus")) {
+            wall.classList.remove("is-focus");
+            var cards = wall.querySelectorAll(".card.is-hot");
+            for (var k = 0; k < cards.length; k++) cards[k].classList.remove("is-hot");
+          }
         });
 
         btn.addEventListener("click", function () {
@@ -199,81 +190,9 @@
 
     wall.appendChild(frag);
     observeLazy();
-    initSpotlight();
     requestAnimationFrame(function () {
-      preloadRange(BOOT_PRELOAD, AHEAD);
+      preloadRange(BOOT, AHEAD);
     });
-  }
-
-  /** 暧昧核心：注视一张时，其它退后 */
-  function setGaze(btn) {
-    wall.classList.add("is-gazing");
-    var items = wall.querySelectorAll(".item");
-    for (var i = 0; i < items.length; i++) {
-      items[i].classList.toggle("is-near", items[i] === btn);
-    }
-  }
-
-  function clearGaze(btn) {
-    if (btn) btn.classList.remove("is-near");
-    // 若焦点还在别的卡片上，不取消整体注视
-    var still = wall.querySelector(".item:hover, .item:focus");
-    if (still) {
-      setGaze(still);
-      return;
-    }
-    wall.classList.remove("is-gazing");
-    var items = wall.querySelectorAll(".item.is-near");
-    for (var i = 0; i < items.length; i++) {
-      items[i].classList.remove("is-near");
-    }
-  }
-
-  /** 暖光跟着指针慢慢走 */
-  function initSpotlight() {
-    var spot = document.getElementById("room-spot");
-    if (!spot) return;
-    try {
-      if (window.matchMedia("(pointer: coarse)").matches) return;
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    } catch (e) {}
-
-    var x = window.innerWidth * 0.5;
-    var y = window.innerHeight * 0.35;
-    var tx = x;
-    var ty = y;
-    var running = false;
-
-    function tick() {
-      x += (tx - x) * 0.07;
-      y += (ty - y) * 0.07;
-      document.documentElement.style.setProperty(
-        "--sx",
-        (x / window.innerWidth) * 100 + "%"
-      );
-      document.documentElement.style.setProperty(
-        "--sy",
-        (y / window.innerHeight) * 100 + "%"
-      );
-      if (Math.abs(tx - x) > 0.4 || Math.abs(ty - y) > 0.4) {
-        requestAnimationFrame(tick);
-      } else {
-        running = false;
-      }
-    }
-
-    window.addEventListener(
-      "pointermove",
-      function (e) {
-        tx = e.clientX;
-        ty = e.clientY;
-        if (!running) {
-          running = true;
-          requestAnimationFrame(tick);
-        }
-      },
-      { passive: true }
-    );
   }
 
   function observeLazy() {
@@ -284,7 +203,7 @@
       nodes.forEach(function (img) {
         img.src = img.dataset.src;
         delete img.dataset.src;
-        img.classList.add("ready");
+        img.classList.add("is-on");
       });
       return;
     }
@@ -296,26 +215,21 @@
           var img = entry.target;
           var src = img.dataset.src;
           if (!src) return;
-
-          // preload then swap once ready — no half-drawn flash / reflow
           preloadUrl(src).then(function () {
             if (img.dataset.src !== src) return;
             img.src = src;
             delete img.dataset.src;
-            img.classList.add("ready");
+            img.classList.add("is-on");
           });
-
-          // also preload a few ahead of this index for smoother scroll
-          var btn = img.closest(".item");
-          if (btn && btn.parentNode) {
-            var idx = Array.prototype.indexOf.call(btn.parentNode.children, btn);
+          var card = img.closest(".card");
+          if (card && card.parentNode) {
+            var idx = Array.prototype.indexOf.call(card.parentNode.children, card);
             if (idx >= 0) preloadRange(idx + 1, AHEAD);
           }
-
           io.unobserve(img);
         });
       },
-      { rootMargin: "800px 0px", threshold: 0.01 }
+      { rootMargin: "700px 0px", threshold: 0.01 }
     );
 
     nodes.forEach(function (img) {
@@ -327,12 +241,12 @@
     cur = i;
     showLb();
     lb.hidden = false;
-    document.body.classList.add("lb-on");
+    document.body.classList.add("lb-open");
   }
 
   function closeLb() {
     lb.hidden = true;
-    document.body.classList.remove("lb-on");
+    document.body.classList.remove("lb-open");
     lbImg.removeAttribute("src");
   }
 
@@ -366,13 +280,7 @@
   });
 
   lbX.addEventListener("click", closeLb);
-  var lbDim = document.getElementById("lb-dim");
-  if (lbDim) {
-    lbDim.addEventListener("click", closeLb);
-  }
-  lb.addEventListener("click", function (e) {
-    if (e.target === lb) closeLb();
-  });
+  if (lbBg) lbBg.addEventListener("click", closeLb);
   lbP.addEventListener("click", function (e) {
     e.stopPropagation();
     nav(-1);
@@ -389,9 +297,47 @@
     if (e.key === "ArrowRight") nav(1);
   });
 
-  statusEl.textContent = "准备图片…";
+  // soft spotlight follow (desktop only)
+  (function () {
+    try {
+      if (window.matchMedia("(pointer: coarse)").matches) return;
+    } catch (e) {
+      return;
+    }
+    var root = document.documentElement;
+    var x = 50;
+    var y = 30;
+    var tx = 50;
+    var ty = 30;
+    var run = false;
+    function tick() {
+      x += (tx - x) * 0.08;
+      y += (ty - y) * 0.08;
+      root.style.setProperty("--sx", x + "%");
+      root.style.setProperty("--sy", y + "%");
+      if (Math.abs(tx - x) > 0.15 || Math.abs(ty - y) > 0.15) {
+        requestAnimationFrame(tick);
+      } else {
+        run = false;
+      }
+    }
+    window.addEventListener(
+      "pointermove",
+      function (e) {
+        tx = (e.clientX / window.innerWidth) * 100;
+        ty = (e.clientY / window.innerHeight) * 100;
+        if (!run) {
+          run = true;
+          requestAnimationFrame(tick);
+        }
+      },
+      { passive: true }
+    );
+  })();
 
-  fetch("images.json?v=10", { cache: "no-store" })
+  statusEl.textContent = "准备中…";
+
+  fetch("images.json?v=11", { cache: "no-store" })
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
@@ -401,17 +347,15 @@
       list = data.slice().sort(function (a, b) {
         return String(b.date || "").localeCompare(String(a.date || ""));
       });
-
-      statusEl.textContent = "预加载首屏…";
-      // reserve structure after boot preload so first paint is stable
-      return preloadRange(0, Math.min(BOOT_PRELOAD, list.length)).then(function () {
+      statusEl.textContent = "加载图片…";
+      return preloadRange(0, Math.min(BOOT, list.length)).then(function () {
         statusEl.classList.add("hide");
         statusEl.textContent = "";
-        render();
+        setMode(false);
       });
     })
     .catch(function (err) {
       console.error(err);
-      statusEl.textContent = "加载失败，请 Ctrl+F5 强制刷新后重试";
+      statusEl.textContent = "加载失败，请 Ctrl+F5 强制刷新";
     });
 })();

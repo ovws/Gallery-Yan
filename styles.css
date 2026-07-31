@@ -1,23 +1,21 @@
-/* 嫣 — warm intimate grid (mobile-first, no waterfall) */
+/* 嫣嫣最可爱啦 — full-width proportional grid */
 
 :root {
-  --bg: #12080c;
-  --card: #1a1014;
+  --bg: #140a0f;
+  --header-h: 60px;
+  --pad: clamp(10px, 2vw, 28px);
+  --gap: clamp(8px, 1.2vw, 16px);
+  --radius: clamp(12px, 1.5vw, 18px);
+  --pink: #ff8ab0;
   --text: #fff4f7;
-  --soft: #c9a0ad;
-  --line: rgba(255, 160, 185, 0.16);
-  --gap: 12px;
-  --pad: 14px;
-  --top: 56px;
+  --muted: #c9a0ad;
+  --line: rgba(255, 160, 190, 0.18);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --linger: cubic-bezier(0.16, 1, 0.3, 1);
-  --sx: 50%;
-  --sy: 30%;
-  --radius: 18px;
-  --max: 720px; /* cozy reading width on large phones / tablet portrait */
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -34,189 +32,132 @@ body {
   font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text);
   background: var(--bg);
-  /* safe areas for notched phones */
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
 }
 
-/* warm private room light */
-.room {
-  pointer-events: none;
+/* soft full-bleed background */
+.bg {
   position: fixed;
   inset: 0;
   z-index: 0;
-  overflow: hidden;
-}
-
-.room-vignette {
-  position: absolute;
-  inset: 0;
+  pointer-events: none;
   background:
-    radial-gradient(ellipse 120% 70% at 50% -10%, rgba(120, 40, 70, 0.38), transparent 55%),
-    radial-gradient(ellipse at center, transparent 30%, rgba(6, 2, 6, 0.72) 100%);
+    radial-gradient(ellipse 90% 55% at 50% -5%, rgba(150, 40, 80, 0.35), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 80%, rgba(90, 25, 55, 0.2), transparent 50%),
+    radial-gradient(ellipse 45% 35% at 0% 60%, rgba(70, 20, 45, 0.16), transparent 50%),
+    var(--bg);
 }
 
-.room-breath {
-  position: absolute;
-  width: min(120vw, 720px);
-  height: min(120vw, 720px);
-  left: 50%;
-  top: 18%;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(255, 90, 140, 0.16), transparent 62%);
-  animation: breath 10s ease-in-out infinite;
-}
-
-@keyframes breath {
-  0%,
-  100% {
-    opacity: 0.5;
-    transform: translate(-50%, -50%) scale(0.96);
-  }
-  50% {
-    opacity: 0.95;
-    transform: translate(-50%, -50%) scale(1.08);
-  }
-}
-
-.room-spot {
-  position: absolute;
-  inset: -20%;
-  background: radial-gradient(
-    360px circle at var(--sx) var(--sy),
-    rgba(255, 110, 155, 0.18),
-    rgba(255, 80, 130, 0.05) 35%,
-    transparent 58%
-  );
-}
-
-/* header */
-.top {
+/* header — full width */
+.header {
   position: sticky;
   top: 0;
-  z-index: 30;
-  height: calc(var(--top) + env(safe-area-inset-top));
-  padding-top: env(safe-area-inset-top);
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: max(var(--pad), env(safe-area-inset-left));
-  padding-right: max(var(--pad), env(safe-area-inset-right));
-  background: rgba(12, 6, 10, 0.86);
-  backdrop-filter: blur(16px) saturate(1.1);
-  -webkit-backdrop-filter: blur(16px) saturate(1.1);
-  border-bottom: 1px solid rgba(255, 140, 170, 0.12);
+  gap: 12px;
+  min-height: calc(var(--header-h) + env(safe-area-inset-top));
+  padding:
+    env(safe-area-inset-top) max(var(--pad), env(safe-area-inset-right))
+    0 max(var(--pad), env(safe-area-inset-left));
+  background: rgba(16, 8, 12, 0.82);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  border-bottom: 1px solid rgba(255, 140, 175, 0.12);
 }
 
-.logo {
+.title {
   font-family: "Ma Shan Zheng", "STKaiti", cursive;
-  font-size: 1.85rem;
+  font-size: clamp(1.45rem, 4.2vw, 2.1rem);
+  font-weight: 400;
+  letter-spacing: 0.08em;
   color: #ffb6cc;
-  text-decoration: none;
-  letter-spacing: 0.12em;
-  line-height: 1;
-  transition: filter 0.4s var(--ease);
-}
-
-.logo:hover {
-  filter: drop-shadow(0 0 14px rgba(255, 120, 160, 0.5));
+  line-height: 1.15;
+  text-shadow: 0 0 28px rgba(255, 120, 160, 0.25);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .modes {
+  flex-shrink: 0;
   display: flex;
-  gap: 2px;
-  padding: 3px;
+  gap: 3px;
+  padding: 4px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255, 100, 140, 0.06);
+  background: rgba(255, 100, 150, 0.07);
 }
 
 .mode {
-  border: 0;
-  border-radius: 999px;
   width: 40px;
   height: 34px;
+  border: 0;
+  border-radius: 999px;
   display: grid;
   place-items: center;
   background: transparent;
-  color: var(--soft);
+  color: var(--muted);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: 0.3s var(--ease);
+  transition: 0.25s var(--ease);
 }
 
 .mode svg {
-  display: block;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .mode.on {
   color: #fff;
   background: linear-gradient(135deg, rgba(255, 90, 140, 0.55), rgba(170, 40, 90, 0.48));
-  box-shadow: 0 0 16px rgba(255, 90, 140, 0.3);
+  box-shadow: 0 0 16px rgba(255, 90, 140, 0.28);
 }
 
 .mode.on svg {
   opacity: 1;
 }
 
-/* —— feed / grid —— */
-main {
+/* main — FULL WIDTH, proportional columns */
+.main {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: var(--max);
-  margin: 0 auto;
-  padding: var(--pad);
-  padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  padding:
+    var(--pad)
+    max(var(--pad), env(safe-area-inset-right))
+    calc(28px + env(safe-area-inset-bottom))
+    max(var(--pad), env(safe-area-inset-left));
 }
 
-/* 大图：手机一列大片，像私密相册 */
+/* CSS Grid with minmax — scales with viewport, no fixed max-width cage */
 .wall {
   display: grid;
+  width: 100%;
   gap: var(--gap);
-  grid-template-columns: 1fr;
   align-items: start;
 }
 
-/* 小图：手机两列整齐 */
-.wall-small {
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+/* 大图：列少、格子更宽，按比例自适应 */
+.wall.is-large {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
 }
 
-/* 平板+ */
-@media (min-width: 640px) {
-  :root {
-    --max: 960px;
-    --gap: 14px;
-    --pad: 18px;
-    --radius: 16px;
+/* 小图：列多、更密 */
+.wall.is-small {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
+}
+
+@media (max-width: 520px) {
+  .wall.is-large {
+    grid-template-columns: 1fr;
   }
-  .wall-large {
+  .wall.is-small {
     grid-template-columns: repeat(2, 1fr);
   }
-  .wall-small {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
-/* 桌面 */
-@media (min-width: 1024px) {
-  :root {
-    --max: 1180px;
-    --gap: 16px;
-  }
-  .wall-large {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .wall-small {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-/* cards */
-.item {
+/* card */
+.card {
   position: relative;
   display: block;
   width: 100%;
@@ -224,197 +165,136 @@ main {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
-  background: var(--card);
+  background: #1a1016;
   cursor: pointer;
   color: inherit;
   font: inherit;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
-  /* 统一竖图感，手机更整齐；真实比例由 aspect-ratio 内联覆盖 */
+  /* default portrait; JS sets real ratio when known */
   aspect-ratio: 3 / 4;
   transition:
-    transform 0.55s var(--linger),
-    box-shadow 0.55s var(--linger),
-    border-color 0.4s ease,
-    filter 0.55s var(--linger);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+    transform 0.45s var(--ease),
+    box-shadow 0.45s var(--ease),
+    border-color 0.35s ease,
+    filter 0.5s var(--ease);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
-/* 大图模式：尽量保留原比例，更自然 */
-.wall-large .item {
-  aspect-ratio: auto;
-  /* 内联 style 的 aspect-ratio 会优先生效 */
+.card:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
 }
 
-.wall-large .item img {
-  position: relative;
-  height: auto;
-  object-fit: contain;
-}
-
-/* 有预留比例时仍 absolute 填满 */
-.wall-large .item[style*="aspect-ratio"] img {
+.card img {
   position: absolute;
-  height: 100%;
-  object-fit: cover;
-}
-
-.item img {
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  position: absolute;
-  inset: 0;
   opacity: 0;
-  transition: opacity 0.28s ease, transform 0.9s var(--linger), filter 0.6s ease;
   transform: scale(1.02);
-  filter: saturate(1.05) brightness(0.96);
+  transition: opacity 0.3s ease, transform 0.7s var(--ease), filter 0.5s ease;
+  filter: saturate(1.04) brightness(0.97);
 }
 
-.item img.ready {
+.card img.is-on {
   opacity: 1;
 }
 
-/* soft warm shade */
-.item .shade {
+.card .veil {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background:
-    linear-gradient(to top, rgba(18, 6, 12, 0.55) 0%, transparent 48%),
-    radial-gradient(ellipse at 50% 20%, rgba(255, 140, 170, 0.06), transparent 50%);
-  transition: opacity 0.6s var(--ease);
-}
-
-.item .glint {
-  position: absolute;
-  inset: -40%;
-  z-index: 2;
-  pointer-events: none;
   background: linear-gradient(
-    115deg,
-    transparent 40%,
-    rgba(255, 220, 235, 0.14) 50%,
-    transparent 60%
+    to top,
+    rgba(12, 4, 10, 0.72) 0%,
+    rgba(12, 4, 10, 0.12) 42%,
+    transparent 65%
   );
-  transform: translateX(-90%) skewX(-10deg);
-  opacity: 0;
-  transition: transform 0.95s var(--linger), opacity 0.3s;
+  transition: opacity 0.45s ease;
 }
 
-.item .cap {
+.card .cap {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 3;
-  padding: 1.4rem 0.85rem 0.75rem;
+  z-index: 2;
+  padding: 1.15rem 0.75rem 0.65rem;
   font-family: "ZCOOL KuaiLe", "PingFang SC", sans-serif;
-  font-size: 0.92rem;
-  letter-spacing: 0.05em;
-  line-height: 1.4;
+  font-size: clamp(0.75rem, 1.6vw, 0.95rem);
+  letter-spacing: 0.04em;
+  line-height: 1.35;
   color: #ffeaf2;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
-  background: linear-gradient(to top, rgba(12, 4, 10, 0.88), transparent);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  transition: opacity 0.45s ease, transform 0.5s var(--ease);
+  transition: opacity 0.35s ease, transform 0.4s var(--ease);
 }
 
-.wall-small .cap {
-  font-size: 0.72rem;
-  padding: 1rem 0.5rem 0.45rem;
+.wall.is-small .card .cap {
+  font-size: 0.7rem;
+  padding: 0.9rem 0.45rem 0.4rem;
   -webkit-line-clamp: 1;
 }
 
-/* —— 桌面：鼠标注视 —— */
+/* desktop hover: soft focus */
 @media (hover: hover) and (pointer: fine) {
-  .item {
-    filter: brightness(0.88) saturate(0.95);
+  .wall.is-focus .card:not(.is-hot) {
+    filter: brightness(0.48) saturate(0.75);
   }
 
-  .wall.is-gazing .item:not(.is-near) {
-    filter: brightness(0.42) saturate(0.7);
-    opacity: 0.75;
-    transform: scale(0.99);
-  }
-
-  .item.is-near,
-  .item:hover {
-    filter: brightness(1.05) saturate(1.08);
-    border-color: rgba(255, 160, 190, 0.42);
-    transform: translateY(-4px) scale(1.015);
-    box-shadow:
-      0 20px 48px rgba(0, 0, 0, 0.4),
-      0 0 36px rgba(255, 90, 140, 0.22);
+  .card.is-hot,
+  .card:hover {
     z-index: 2;
+    border-color: rgba(255, 160, 195, 0.45);
+    transform: translateY(-4px);
+    box-shadow:
+      0 18px 40px rgba(0, 0, 0, 0.42),
+      0 0 32px rgba(255, 90, 140, 0.2);
+    filter: brightness(1.04) saturate(1.06);
   }
 
-  .item.is-near img.ready,
-  .item:hover img.ready {
-    transform: scale(1.08);
+  .card.is-hot img.is-on,
+  .card:hover img.is-on {
+    transform: scale(1.06);
     filter: saturate(1.1) brightness(1.03);
   }
 
-  .item.is-near .shade,
-  .item:hover .shade {
-    opacity: 0.25;
+  .card.is-hot .veil,
+  .card:hover .veil {
+    opacity: 0.55;
   }
 
-  .item.is-near .glint,
-  .item:hover .glint {
-    opacity: 1;
-    transform: translateX(90%) skewX(-10deg);
-  }
-
-  .item .cap {
+  .card .cap {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
 
-  .item.is-near .cap,
-  .item:hover .cap {
+  .card.is-hot .cap,
+  .card:hover .cap {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* —— 手机：温馨大片，不用糊掉其它图 —— */
 @media (hover: none) {
-  .item {
-    filter: none;
-  }
-
-  .item:active {
-    transform: scale(0.985);
-  }
-
-  .item .cap {
+  .card .cap {
     opacity: 0.95;
   }
-
-  .item .shade {
-    opacity: 0.7;
-  }
-
-  /* 轻触反馈：轻微提亮 */
-  .item.is-near {
-    border-color: rgba(255, 160, 190, 0.35);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 24px rgba(255, 90, 140, 0.15);
-  }
-
-  .item.is-near img.ready {
-    transform: scale(1.04);
+  .card:active {
+    transform: scale(0.985);
   }
 }
 
 .status {
   text-align: center;
-  color: var(--soft);
+  color: var(--muted);
   padding: 3rem 1rem;
   font-size: 0.9rem;
 }
@@ -429,35 +309,30 @@ main {
   inset: 0;
   z-index: 100;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
-  animation: lbIn 0.4s var(--ease) forwards;
+  animation: fade 0.3s var(--ease) forwards;
 }
 
-@keyframes lbIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .lb[hidden] {
   display: none !important;
 }
 
-.lb-dim {
+.lb-bg {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 45%, rgba(50, 12, 28, 0.35), rgba(4, 1, 4, 0.94) 70%);
+  background: radial-gradient(ellipse at center, rgba(40, 10, 24, 0.4), rgba(4, 1, 4, 0.94) 70%);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 
-.lb-stage {
+.lb-box {
   position: relative;
   z-index: 1;
   display: flex;
@@ -465,13 +340,13 @@ main {
   align-items: center;
   gap: 0.75rem;
   max-width: 100%;
-  animation: stageIn 0.55s var(--linger) both;
+  animation: up 0.4s var(--ease) both;
 }
 
-@keyframes stageIn {
+@keyframes up {
   from {
-    opacity: 0;
-    transform: scale(0.96) translateY(12px);
+    opacity: 0.6;
+    transform: scale(0.97) translateY(10px);
   }
   to {
     opacity: 1;
@@ -479,40 +354,37 @@ main {
   }
 }
 
-.lb img {
-  max-width: min(96vw, 1100px);
-  max-height: min(75vh, 880px);
-  max-height: min(75dvh, 880px);
+.lb-box img {
+  max-width: min(96vw, 1200px);
+  max-height: min(78vh, 900px);
+  max-height: min(78dvh, 900px);
   object-fit: contain;
-  border-radius: 14px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 90, 140, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
 }
 
 .lb-cap {
-  max-width: 34rem;
-  padding: 0 0.5rem;
+  max-width: 36rem;
   text-align: center;
   font-family: "ZCOOL KuaiLe", "PingFang SC", sans-serif;
-  font-size: clamp(0.9rem, 3.5vw, 1.05rem);
+  font-size: clamp(0.9rem, 3.2vw, 1.1rem);
   letter-spacing: 0.06em;
   color: #ffe6f0;
   line-height: 1.5;
+  padding: 0 0.5rem;
 }
 
-.lb-x,
-.lb-p,
-.lb-n {
+.lb-btn {
   position: absolute;
   z-index: 2;
-  border: 1px solid var(--line);
-  background: rgba(22, 10, 16, 0.82);
-  color: #ffb6cc;
   width: 44px;
   height: 44px;
+  border: 1px solid var(--line);
   border-radius: 50%;
+  background: rgba(22, 10, 16, 0.85);
+  color: #ffb6cc;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: 0.3s var(--ease);
 }
 
 .lb-x {
@@ -540,12 +412,8 @@ main {
   height: 1.5px;
   background: currentColor;
 }
-.lb-x::before {
-  transform: translate(-50%, -50%) rotate(45deg);
-}
-.lb-x::after {
-  transform: translate(-50%, -50%) rotate(-45deg);
-}
+.lb-x::before { transform: translate(-50%, -50%) rotate(45deg); }
+.lb-x::after { transform: translate(-50%, -50%) rotate(-45deg); }
 
 .lb-p::before,
 .lb-n::before {
@@ -557,26 +425,23 @@ main {
   height: 10px;
   border-left: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
-  background: transparent;
 }
-.lb-p::before {
-  transform: translate(-35%, -50%) rotate(45deg);
-}
-.lb-n::before {
-  transform: translate(-65%, -50%) rotate(-135deg);
-}
+.lb-p::before { transform: translate(-35%, -50%) rotate(45deg); }
+.lb-n::before { transform: translate(-65%, -50%) rotate(-135deg); }
 
-body.lb-on {
+body.lb-open {
   overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .room-breath,
-  .item,
-  .item img,
-  .lb,
-  .lb-stage {
+  *,
+  *::before,
+  *::after {
     animation: none !important;
-    transition: none !important;
+    transition-duration: 0.01ms !important;
+  }
+  .card .cap {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
