@@ -136,27 +136,24 @@
         img.height = d.h;
         img.decoding = "async";
         img.draggable = false;
+        // 直接挂真实缩略图，不用透明占位（占位+opacity:0 会像“空白只有字”）
+        img.loading = i < BOOT ? "eager" : "lazy";
+        if (i < 8) img.fetchPriority = "high";
+        img.src = src;
 
-        if (i < BOOT || preloaded[src]) {
-          img.src = src;
-          img.className = "is-on";
-          if (i < 8) img.fetchPriority = "high";
-        } else {
-          img.loading = "lazy";
-          img.dataset.src = src;
-          img.src =
-            "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-        }
-
-        img.addEventListener("load", function () {
-          if (img.dataset.src) return;
+        function showImg() {
           img.classList.add("is-on");
-          img.classList.remove("is-fail");
-        });
+        }
+        // 缓存命中时 load 可能已触发，必须检查 complete
+        if (img.complete && img.naturalWidth > 0) {
+          showImg();
+        } else {
+          img.addEventListener("load", showImg);
+        }
         img.addEventListener("error", function () {
-          // try full image once if thumb fails
           if (img.dataset.retried) {
-            img.classList.add("is-fail");
+            // 仍失败：至少去掉透明，露出卡片底，避免“只有标题”
+            showImg();
             return;
           }
           img.dataset.retried = "1";
@@ -207,52 +204,10 @@
     }
 
     wall.appendChild(frag);
-    observeLazy();
     initSpot();
+    // 预热后续缩略图（原生 lazy 负责真正下载时机）
     requestAnimationFrame(function () {
       preloadRange(BOOT, AHEAD);
-    });
-  }
-
-  function observeLazy() {
-    var nodes = wall.querySelectorAll("img[data-src]");
-    if (!nodes.length) return;
-
-    if (!("IntersectionObserver" in window)) {
-      nodes.forEach(function (img) {
-        img.src = img.dataset.src;
-        delete img.dataset.src;
-        img.classList.add("is-on");
-      });
-      return;
-    }
-
-    var io = new IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (entry) {
-          if (!entry.isIntersecting) return;
-          var img = entry.target;
-          var src = img.dataset.src;
-          if (!src) return;
-          preloadUrl(src).then(function () {
-            if (img.dataset.src !== src) return;
-            img.src = src;
-            delete img.dataset.src;
-            img.classList.add("is-on");
-          });
-          var card = img.closest(".card");
-          if (card && card.parentNode) {
-            var idx = Array.prototype.indexOf.call(card.parentNode.children, card);
-            if (idx >= 0) preloadRange(idx + 1, AHEAD);
-          }
-          io.unobserve(img);
-        });
-      },
-      { rootMargin: "700px 0px", threshold: 0.01 }
-    );
-
-    nodes.forEach(function (img) {
-      io.observe(img);
     });
   }
 
@@ -364,7 +319,7 @@
 
   statusEl.textContent = "再等等…";
 
-  fetch("images.json?v=13", { cache: "no-store" })
+  fetch("images.json?v=14", { cache: "no-store" })
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
