@@ -1,18 +1,15 @@
 {
-  "name": "velvet-gallery",
+  "name": "gallery-yan",
   "version": "1.0.0",
   "private": true,
-  "description": "是嫣嫣呀 — 甜一点坏一点刚刚好的图片展示站",
+  "description": "嫣 — image gallery",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
     "thumbs": "node scripts/gen-thumbs.js",
-    "build": "node scripts/gen-thumbs.js"
+    "build": "node -e \"console.log('static site — thumbs prebuilt, nothing to build')\""
   },
   "engines": {
-    "node": ">=18"
-  },
-  "devDependencies": {
-    "sharp": "^0.35.3"
+    "node": "20.x"
   }
 }

@@ -1,5 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "echo skip-install",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
@@ -13,16 +17,7 @@
       ]
     },
     {
-      "source": "/images/thumbs/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)\\.(css|js)",
+      "source": "/(.*)\\.(css|js|webp)",
       "headers": [
         {
           "key": "Cache-Control",
