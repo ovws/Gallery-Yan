@@ -1,5 +1,5 @@
 /* Service worker — cache shell + thumbs for snappy repeat visits */
-const CACHE = "yan-v3";
+const CACHE = "yan-v4";
 const PRECACHE = [
   "./",
   "./index.html",

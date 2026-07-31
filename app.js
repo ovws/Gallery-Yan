@@ -1,24 +1,20 @@
 /**
- * 嫣 — virtualized grid gallery (performance-first)
- * Only visible cards are in the DOM. Grid uses thumbs; lightbox uses full images.
+ * 嫣 — virtualized grid (layout-fixed)
  */
 (() => {
   "use strict";
 
   const scroller = document.getElementById("scroller");
-  const spacer = document.getElementById("spacer");
   const galleryEl = document.getElementById("gallery");
   const loaderEl = document.getElementById("loader");
   const lightbox = document.getElementById("lightbox");
   const lbImg = document.getElementById("lb-img");
   const lbName = document.getElementById("lb-name");
 
-  /** @type {Array<{src:string,thumb?:string,name?:string,date?:string,caption?:string}>} */
   let images = [];
   let current = 0;
   let viewMode = "large";
 
-  // layout metrics
   let cols = 1;
   let cellW = 0;
   let cellH = 0;
@@ -28,15 +24,11 @@
   let scrollRaf = 0;
   let resizeRaf = 0;
 
-  // virtual window
-  const ROW_BUFFER = 2;
+  const ROW_BUFFER = 3;
+  const ASPECT_H_OVER_W = 4 / 3;
   /** @type {Map<number, HTMLElement>} */
   const mounted = new Map();
   const preloadCache = new Set();
-
-  // aspect ratio for uniform cells (portrait-friendly, no reflow)
-  const ASPECT = 3 / 4; // w/h → height = width / ASPECT? wait: portrait is taller: h/w = 4/3
-  const ASPECT_H_OVER_W = 4 / 3;
 
   function assetUrl(src) {
     return String(src || "")
@@ -47,11 +39,11 @@
   }
 
   function thumbOf(item) {
-    return item.thumb || item.src;
+    return (item && (item.thumb || item.src)) || "";
   }
 
   function fullOf(item) {
-    return item.src;
+    return (item && item.src) || "";
   }
 
   function displayName(item) {
@@ -73,34 +65,35 @@
     return p.length >= 3 ? `${p[0]}.${p[1]}.${p[2]}` : "";
   }
 
-  function minColForMode() {
-    // match CSS clamps approximately for JS layout
-    const w = scroller.clientWidth - pad * 2;
+  function minColForMode(innerW) {
     if (viewMode === "small") {
-      if (w < 400) return 96;
-      if (w < 900) return Math.max(100, w * 0.18);
+      if (innerW < 400) return 96;
+      if (innerW < 900) return Math.max(100, innerW * 0.18);
       return 140;
     }
-    if (w < 500) return 160;
-    if (w < 900) return Math.max(200, w * 0.28);
+    if (innerW < 500) return 160;
+    if (innerW < 900) return Math.max(200, innerW * 0.28);
     return 280;
   }
 
   function measure() {
-    const style = getComputedStyle(document.documentElement);
-    gap = parseFloat(style.getPropertyValue("--gap")) || 8;
-    pad = parseFloat(style.getPropertyValue("--pad")) || 10;
+    // scroller has padding; clientWidth includes padding box, content width needs subtract
+    const cs = getComputedStyle(scroller);
+    pad = parseFloat(cs.paddingLeft) || 10;
+    gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--gap")) || 8;
 
-    const innerW = Math.max(0, scroller.clientWidth - pad * 2);
-    const minCol = minColForMode();
+    const innerW = Math.max(120, scroller.clientWidth - pad * 2);
+    const minCol = minColForMode(innerW);
     cols = Math.max(1, Math.floor((innerW + gap) / (minCol + gap)));
     cellW = (innerW - gap * (cols - 1)) / cols;
     cellH = cellW * ASPECT_H_OVER_W;
-    totalRows = Math.ceil(images.length / cols) || 0;
+    totalRows = Math.max(1, Math.ceil(images.length / cols));
 
-    const totalH = totalRows > 0 ? totalRows * cellH + (totalRows - 1) * gap : 0;
-    spacer.style.height = `${totalH}px`;
+    const totalH =
+      images.length === 0 ? 0 : totalRows * cellH + Math.max(0, totalRows - 1) * gap;
+
     galleryEl.style.height = `${totalH}px`;
+    galleryEl.style.width = `${innerW}px`;
   }
 
   function setView(mode) {
@@ -112,8 +105,11 @@
       btn.classList.toggle("active", on);
       btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
+    // remount all (names/date differ by mode)
+    for (const [, el] of mounted) el.remove();
+    mounted.clear();
     measure();
-    syncWindow(true);
+    syncWindow();
   }
 
   function createCard(index) {
@@ -164,25 +160,26 @@
   }
 
   function visibleRange() {
+    if (!images.length || cellH <= 0) return { start: 0, end: -1 };
+
     const st = scroller.scrollTop;
-    const vh = scroller.clientHeight;
+    const vh = scroller.clientHeight || window.innerHeight;
     const rowH = cellH + gap;
-    if (rowH <= 0 || !images.length) return { start: 0, end: -1 };
 
     let startRow = Math.floor(st / rowH) - ROW_BUFFER;
     let endRow = Math.ceil((st + vh) / rowH) + ROW_BUFFER;
     startRow = Math.max(0, startRow);
-    endRow = Math.min(totalRows - 1, endRow);
+    endRow = Math.min(totalRows - 1, Math.max(startRow, endRow));
 
     const start = startRow * cols;
     const end = Math.min(images.length - 1, (endRow + 1) * cols - 1);
     return { start, end };
   }
 
-  function syncWindow(force) {
+  function syncWindow() {
     const { start, end } = visibleRange();
+
     if (end < start) {
-      // empty
       for (const [idx, el] of mounted) {
         el.remove();
         mounted.delete(idx);
@@ -190,17 +187,13 @@
       return;
     }
 
-    // unmount outside window
     for (const [idx, el] of mounted) {
       if (idx < start || idx > end) {
         el.remove();
         mounted.delete(idx);
-      } else if (force) {
-        positionCard(el, idx);
       }
     }
 
-    // mount missing
     const frag = document.createDocumentFragment();
     let added = false;
     for (let i = start; i <= end; i++) {
@@ -220,7 +213,7 @@
     if (scrollRaf) return;
     scrollRaf = requestAnimationFrame(() => {
       scrollRaf = 0;
-      syncWindow(false);
+      syncWindow();
     });
   }
 
@@ -229,7 +222,7 @@
     resizeRaf = requestAnimationFrame(() => {
       resizeRaf = 0;
       measure();
-      syncWindow(true);
+      syncWindow();
     });
   }
 
@@ -258,7 +251,6 @@
     lbImg.alt = label;
     if (lbName) lbName.textContent = label;
 
-    // show thumb instantly, upgrade to full
     if (lbImg.dataset.full !== full) {
       lbImg.dataset.full = full;
       lbImg.src = thumb;
@@ -300,7 +292,6 @@
     showLightboxImage();
   }
 
-  // events
   document.querySelectorAll(".view-btn").forEach((btn) => {
     btn.addEventListener("click", () => setView(btn.dataset.view));
   });
@@ -357,27 +348,44 @@
 
   function registerSW() {
     if (!("serviceWorker" in navigator)) return;
-    // only on http(s) hosts (not file://)
     if (!/^https?:$/.test(location.protocol)) return;
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+    // bump cache by re-registering; skip if broken cache
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      // keep SW but don't block first paint
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    });
   }
 
   async function init() {
     try {
-      const res = await fetch("images.json", { cache: "force-cache" });
-      if (!res.ok) throw new Error(String(res.status));
+      // avoid stale force-cache hiding updates
+      const res = await fetch("images.json", { cache: "no-cache" });
+      if (!res.ok) throw new Error("images.json " + res.status);
       const data = await res.json();
+      if (!Array.isArray(data) || !data.length) throw new Error("empty list");
+
       images = data.slice().sort((a, b) => {
         return (b.date || "").localeCompare(a.date || "") || (b.name || "").localeCompare(a.name || "");
       });
 
       loaderEl.classList.add("hidden");
-      measure();
-      syncWindow(true);
+
+      // measure after loader hidden (layout stable)
+      requestAnimationFrame(() => {
+        measure();
+        syncWindow();
+        // second pass after fonts/layout settle
+        requestAnimationFrame(() => {
+          measure();
+          syncWindow();
+        });
+      });
+
       registerSW();
     } catch (err) {
       console.error(err);
-      loaderEl.innerHTML = "";
+      loaderEl.innerHTML =
+        '<p style="color:#ffb3c1;font-family:system-ui;padding:2rem;text-align:center">加载失败，请刷新重试</p>';
     }
   }
 
