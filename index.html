@@ -74,6 +74,11 @@
   </div>
 
   <script src="app.js"></script>
-  <script type="module" src="speed-insights.bundle.js"></script>
+  <!-- Vercel Speed Insights：无需 esbuild 打包，部署在 Vercel 上自动生效 -->
+  <script>
+    window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>
+

@@ -7,18 +7,12 @@
     "start": "node server.js",
     "dev": "node server.js",
     "thumbs": "node scripts/gen-thumbs.js",
-    "build": "npm run build:insights",
-    "build:insights": "esbuild speed-insights.js --bundle --minify --outfile=speed-insights.bundle.js --format=esm"
+    "build": "node -e \"console.log('static site — no build step')\""
   },
   "engines": {
-    "node": ">=18"
+    "node": "20.x"
   },
   "devDependencies": {
-    "esbuild": "^0.24.2",
-    "sharp": "^0.35.3"
-  },
-  "dependencies": {
-    "@vercel/speed-insights": "^1.1.0",
     "sharp": "^0.35.3"
   }
 }
