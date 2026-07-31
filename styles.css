@@ -363,7 +363,16 @@ main {
 .card-img-wrap {
   position: relative;
   overflow: hidden;
-  background: #160a10;
+  background:
+    linear-gradient(110deg, #1a0c12 25%, #2a1420 37%, #1a0c12 63%);
+  background-size: 200% 100%;
+  animation: skeleton 1.1s ease-in-out infinite;
+  min-height: 120px;
+}
+
+@keyframes skeleton {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 .card img {
@@ -371,12 +380,26 @@ main {
   width: 100%;
   height: auto;
   vertical-align: middle;
-  /* avoid permanent CSS filters on every image (GPU heavy) */
-  transition: transform 0.55s var(--ease);
+  opacity: 0;
+  transition: transform 0.55s var(--ease), opacity 0.28s ease;
 }
 
-.card:hover img {
+.card img.is-loaded {
+  opacity: 1;
+}
+
+.card:hover img.is-loaded {
   transform: scale(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-img-wrap {
+    animation: none;
+    background: #160a10;
+  }
+  .card img {
+    opacity: 1;
+  }
 }
 
 .card-veil {

@@ -6,9 +6,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "node -e \"console.log('Static site — no build step')\""
+    "thumbs": "node scripts/gen-thumbs.js",
+    "build": "node scripts/gen-thumbs.js"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.3"
   }
 }
