@@ -332,27 +332,60 @@ body {
   right: 0;
   bottom: 0;
   z-index: 3;
-  padding: 1.35rem 0.75rem 0.65rem;
-  font-family: "ZCOOL KuaiLe", "PingFang SC", sans-serif;
+  padding: 1.5rem 0.7rem 0.7rem;
+  font-family: "ZCOOL KuaiLe", "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: clamp(0.78rem, 1.5vw, 0.95rem);
-  letter-spacing: 0.05em;
-  line-height: 1.35;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
   color: #ffeaf2;
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
-  background: linear-gradient(to top, rgba(8, 2, 6, 0.9), transparent);
+  background: linear-gradient(
+    to top,
+    rgba(8, 2, 6, 0.94) 0%,
+    rgba(8, 2, 6, 0.72) 55%,
+    transparent 100%
+  );
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  /* avoid mid-glyph clipping */
+  padding-bottom: max(0.7rem, env(safe-area-inset-bottom, 0px));
   transform: translateY(12px);
   opacity: 0;
   transition: transform 0.7s var(--linger), opacity 0.55s ease;
 }
 
 .wall.is-small .card .cap {
-  font-size: 0.72rem;
-  padding: 1rem 0.5rem 0.45rem;
-  -webkit-line-clamp: 1;
+  font-size: 0.74rem;
+  letter-spacing: 0.02em;
+  padding: 1.2rem 0.5rem 0.55rem;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* 手机端：小图两列更易裁字，再放宽行数与字号 */
+@media (max-width: 640px) {
+  .card .cap {
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
+    line-height: 1.45;
+    padding: 1.55rem 0.55rem 0.65rem;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .wall.is-small .card .cap {
+    font-size: 0.62rem;
+    letter-spacing: 0;
+    line-height: 1.4;
+    padding: 1.25rem 0.4rem 0.5rem;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
 }
 
 /* 注视：只剩这一张 */
@@ -404,11 +437,11 @@ body {
     filter: brightness(0.96) saturate(1.02);
   }
   .card .cap {
-    opacity: 0.92;
+    opacity: 1;
     transform: none;
   }
   .card .veil {
-    opacity: 0.65;
+    opacity: 0.55;
   }
   .card:active {
     transform: scale(0.985);
