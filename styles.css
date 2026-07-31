@@ -104,17 +104,78 @@ body {
 }
 
 .logo {
-  font-family: "Ma Shan Zheng", "STKaiti", cursive;
-  font-size: 1.75rem;
-  letter-spacing: 0.12em;
-  color: #ffb3c8;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
   text-decoration: none;
   line-height: 1;
   transition: filter 0.4s var(--ease);
 }
 
 .logo:hover {
-  filter: drop-shadow(0 0 12px rgba(255, 110, 150, 0.45));
+  filter: drop-shadow(0 0 14px rgba(255, 80, 120, 0.4));
+}
+
+.logo-heart {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  filter: drop-shadow(0 0 8px rgba(225, 29, 72, 0.65));
+}
+
+.logo-heart svg {
+  display: block;
+  overflow: visible;
+}
+
+.logo-heart-path {
+  transform-origin: 50% 55%;
+  animation: heartBeat 1.05s ease-in-out infinite;
+}
+
+@keyframes heartBeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.18);
+  }
+  28% {
+    transform: scale(0.92);
+  }
+  42% {
+    transform: scale(1.12);
+  }
+  70% {
+    transform: scale(1);
+  }
+}
+
+.logo-text {
+  font-family: "Ma Shan Zheng", "STKaiti", cursive;
+  font-size: clamp(1.25rem, 3.6vw, 1.85rem);
+  letter-spacing: 0.08em;
+  color: transparent;
+  background: linear-gradient(115deg, #fff5f8 0%, #ffb3c8 40%, #ff8ab0 70%, #f0c4a0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logo:hover .logo-heart-path {
+  animation-duration: 0.75s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-heart-path {
+    animation: none;
+  }
 }
 
 .modes {

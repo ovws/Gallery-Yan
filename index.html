@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#12060c" />
-  <meta name="description" content="嫣" />
-  <title>嫣</title>
+  <meta name="description" content="嫣嫣最可爱啦" />
+  <title>嫣嫣最可爱啦</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' x='50%' text-anchor='middle' font-size='70' fill='%23ff9abb'>嫣</text></svg>" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
 <body>
   <div class="mood" aria-hidden="true">
@@ -20,7 +20,25 @@
   </div>
 
   <header class="top">
-    <a class="logo" href="./" aria-label="嫣">嫣</a>
+    <a class="logo" href="./" aria-label="嫣嫣最可爱啦">
+      <span class="logo-heart" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="22" height="22">
+          <defs>
+            <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff6b8a"/>
+              <stop offset="50%" stop-color="#e11d48"/>
+              <stop offset="100%" stop-color="#be123c"/>
+            </linearGradient>
+          </defs>
+          <path
+            class="logo-heart-path"
+            fill="url(#heartGrad)"
+            d="M16 27s-1.2-1-3.2-2.7C8.2 20.6 4 17.1 4 12.4 4 8.9 6.7 6.5 10 6.5c1.9 0 3.6.9 4.6 2.3C15.6 7.4 17.3 6.5 19.2 6.5 22.5 6.5 25.2 8.9 25.2 12.4c0 4.7-4.2 8.2-8.8 11.9C17.2 26 16 27 16 27z"
+          />
+        </svg>
+      </span>
+      <span class="logo-text">嫣嫣最可爱啦</span>
+    </a>
     <div class="modes" role="group" aria-label="视图">
       <button type="button" id="btn-large" class="mode on" aria-pressed="true" title="疏" aria-label="大图">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
