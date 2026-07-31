@@ -1,0 +1,14 @@
+{
+  "name": "velvet-gallery",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Velvet — 深色氛围感图片展示站",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "node -e \"console.log('Static site — no build step')\""
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -24,12 +24,17 @@
 
   yearEl.textContent = new Date().getFullYear();
 
-  /** Encode path segments for URLs with Chinese / special chars */
+  /** Encode path segments (safe for spaces / unicode if any remain) */
   function encodePath(path) {
     return path
       .split("/")
       .map((seg) => encodeURIComponent(seg))
       .join("/");
+  }
+
+  /** Prefer relative paths so Vercel / local / subpath all work */
+  function assetUrl(src) {
+    return encodePath(src.replace(/^\//, ""));
   }
 
   function formatDate(dateStr) {
@@ -96,7 +101,7 @@
       wrap.className = "card-img-wrap";
 
       const image = document.createElement("img");
-      image.src = encodePath(img.src);
+      image.src = assetUrl(img.src);
       image.alt = img.caption || "影像";
       image.loading = "lazy";
       image.decoding = "async";
@@ -166,7 +171,7 @@
   function updateLightbox() {
     const img = filtered[currentIndex];
     if (!img) return;
-    lbImg.src = encodePath(img.src);
+    lbImg.src = assetUrl(img.src);
     lbImg.alt = img.caption || "影像";
     lbCaption.textContent = img.caption || "";
     lbDate.textContent = img.date ? formatDate(img.date) : "";
