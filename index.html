@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <script src="site.config.js"></script>
 </head>
 <body>
   <div class="mood" aria-hidden="true">
@@ -20,7 +21,7 @@
   </div>
 
   <header class="top">
-    <a class="logo" href="./" aria-label="嫣嫣">
+    <a class="logo" href="./" id="logo" aria-label="嫣嫣">
       <span class="logo-heart" aria-hidden="true">
         <svg viewBox="0 0 32 32" width="22" height="22">
           <defs>
@@ -37,7 +38,7 @@
           />
         </svg>
       </span>
-      <span class="logo-text">嫣嫣</span>
+      <span class="logo-text" id="logo-text">嫣嫣</span>
     </a>
     <div class="modes" role="group" aria-label="视图">
       <button type="button" id="btn-large" class="mode on" aria-pressed="true" title="疏" aria-label="大图">

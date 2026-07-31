@@ -1,84 +1,54 @@
-# 是嫣嫣呀
+# 嫣嫣相册模板
 
-甜一点、坏一点、刚刚好的氛围感图片站。源码与图片存 **GitHub**，线上部署走 **Vercel**。
+静态图片展示站：瀑布流 + 缩略图 + 灯箱。  
+**换图即可变成新项目**，不必改业务逻辑。
 
-## 链接
+## 快速变成一个新站
 
-- 仓库：https://github.com/ovws/Velvet-Gallery
-- 本地：`npm start` → http://localhost:3000
+1. **复制整个文件夹**（或 clone 本仓库）
+2. 编辑 `site.config.js`：
+   ```js
+   window.SITE = {
+     title: "浏览器标签标题",
+     brand: "页眉显示名",
+     tagline: "",
+     domain: "xxx.example.com",
+   };
+   ```
+3. **清空并放入新图**到 `images/`（建议命名 `img_0001.webp` / `.jpg` / `.png`）
+4. 生成缩略图与清单：
+   ```bash
+   npm install
+   npm run thumbs
+   ```
+5. 如需自定义域名：改 `CNAME` 文件内容
+6. 推到 GitHub 新仓库，接 GitHub Pages 或 Vercel
 
-## 本地预览（Windows 推荐）
-
-本机若没有真正的 Python，请用 Node（你已安装）：
+## 本地预览
 
 ```bash
-cd E:\Show
 npm start
+# http://localhost:3000
 ```
 
-浏览器打开：**http://localhost:3000**
+## 目录说明
 
-换端口：
+| 路径 | 作用 |
+|------|------|
+| `site.config.js` | 标题 / 品牌（换项目必改） |
+| `images/` | 原图 |
+| `images/thumbs/` | 缩略图（`npm run thumbs` 生成） |
+| `images.json` | 图片清单与宽高（生成脚本写出） |
+| `index.html` / `app.js` / `styles.css` | 页面与逻辑 |
+| `CNAME` | GitHub Pages 自定义域名 |
+| `favicon.svg` | 标签页图标 |
 
-```bash
-node server.js 8080
-```
+## 部署
 
-> 不要用资源管理器双击 `index.html`（`file://`），`fetch('images.json')` 会失败。
+- **GitHub Pages**：公开仓库 → Settings → Pages → `main` / root  
+- **Vercel**：导入仓库，静态站即可（`npm run build` 为空操作）
 
-## 部署到 Vercel（推荐）
+## 注意
 
-### 方式 A：网页导入（最稳）
-
-1. 打开 [vercel.com](https://vercel.com) → 登录（用 GitHub 账号）
-2. **Add New… → Project**
-3. 导入 **`ovws/Velvet-Gallery`**
-4. 配置保持默认即可：
-   - **Framework Preset**: Other
-   - **Build Command**: 留空（或 `npm run build`）
-   - **Output Directory**: 留空（根目录静态站）
-   - **Install Command**: 可留空
-5. 点 **Deploy**
-
-之后每次 `git push` 到 `main`，Vercel 会自动重新部署。
-
-### 方式 B：CLI
-
-```bash
-npm i -g vercel
-vercel login
-vercel          # 预览
-vercel --prod   # 生产
-```
-
-## 更新图片
-
-1. 把新图放进 `images/`，建议命名 `img_0194.jpg` 这种安全文件名（避免 `#`、空格）
-2. 编辑或重新生成 `images.json`（字段：`src` / `name` / `date` / `caption` / `size`）
-3. 提交推送：
-
-```bash
-git add images images.json
-git commit -m "Add new photos"
-git push
-```
-
-Vercel 会自动上线。
-
-## 项目结构
-
-```
-├── index.html      # 页面
-├── styles.css      # 样式
-├── app.js          # 交互
-├── images.json     # 图片清单（文案/日期）
-├── images/         # 图片库 img_0001.webp …
-├── server.js       # 本地静态服务
-├── package.json
-└── vercel.json     # Vercel 缓存与路由
-```
-
-## 说明
-
-- 原文件名里有中文、`#`、空格，已统一重命名为 `img_XXXX.jpg`，文案保留在 `images.json` 的 `caption` 字段，避免 CDN / URL 踩坑。
-- 纯静态站，无后端、无构建产物，Vercel 免费额度完全够用。
+- 不要直接改 `images.json` 手写路径，以 `npm run thumbs` 为准  
+- 图片尽量用 webp/jpg，单张不宜过大  

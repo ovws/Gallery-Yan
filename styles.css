@@ -267,8 +267,8 @@ body {
   isolation: isolate;
   clip-path: inset(0 round var(--r));
   -webkit-clip-path: inset(0 round var(--r));
-  /* transparent so any subpixel edge matches page, not a flat card color */
-  background: transparent;
+  /* solid fill until image paints — avoids “empty hole” in waterfall gaps */
+  background: linear-gradient(145deg, #221018, #140a10);
   cursor: pointer;
   position: relative;
   display: block;
@@ -305,6 +305,10 @@ body {
 
 .card img.is-on {
   opacity: 1;
+}
+
+.card img.is-fail {
+  opacity: 0;
 }
 
 .card .veil {

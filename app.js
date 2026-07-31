@@ -37,6 +37,18 @@
   var BOOT = 12;
   var AHEAD = 10;
 
+  // apply site.config.js
+  (function applySite() {
+    var s = window.SITE || {};
+    if (s.title) document.title = s.title;
+    var logoText = document.getElementById("logo-text");
+    var logo = document.getElementById("logo");
+    if (logoText && s.brand) logoText.textContent = s.brand;
+    if (logo && s.brand) logo.setAttribute("aria-label", s.brand);
+    var meta = document.querySelector('meta[name="description"]');
+    if (meta && s.title) meta.setAttribute("content", s.title);
+  })();
+
   function enc(src) {
     return String(src || "")
       .split("/")
@@ -139,6 +151,16 @@
         img.addEventListener("load", function () {
           if (img.dataset.src) return;
           img.classList.add("is-on");
+          img.classList.remove("is-fail");
+        });
+        img.addEventListener("error", function () {
+          // try full image once if thumb fails
+          if (img.dataset.retried) {
+            img.classList.add("is-fail");
+            return;
+          }
+          img.dataset.retried = "1";
+          img.src = fullOf(item);
         });
 
         var veil = document.createElement("span");
