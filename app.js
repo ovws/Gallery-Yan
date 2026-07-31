@@ -267,6 +267,10 @@
   });
 
   lbX.addEventListener("click", closeLb);
+  var lbDim = document.getElementById("lb-dim");
+  if (lbDim) {
+    lbDim.addEventListener("click", closeLb);
+  }
   lb.addEventListener("click", function (e) {
     if (e.target === lb) closeLb();
   });
@@ -288,7 +292,7 @@
 
   statusEl.textContent = "准备图片…";
 
-  fetch("images.json?v=7", { cache: "no-store" })
+  fetch("images.json?v=8", { cache: "no-store" })
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
