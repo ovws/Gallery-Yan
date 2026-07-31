@@ -1,32 +1,45 @@
-/* 嫣 — intimate gaze (motion + light, not slogans) */
+/* 嫣 — warm intimate grid (mobile-first, no waterfall) */
 
 :root {
-  --bg: #0a0407;
-  --card: #140a0f;
-  --text: #fff2f6;
-  --soft: #b88a98;
-  --line: rgba(255, 140, 180, 0.16);
-  --gap: 14px;
-  --pad: 16px;
-  --top: 58px;
+  --bg: #12080c;
+  --card: #1a1014;
+  --text: #fff4f7;
+  --soft: #c9a0ad;
+  --line: rgba(255, 160, 185, 0.16);
+  --gap: 12px;
+  --pad: 14px;
+  --top: 56px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --linger: cubic-bezier(0.16, 1, 0.3, 1);
   --sx: 50%;
-  --sy: 35%;
+  --sy: 30%;
+  --radius: 18px;
+  --max: 720px; /* cozy reading width on large phones / tablet portrait */
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text);
   background: var(--bg);
+  /* safe areas for notched phones */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
-/* —— 暧昧空间：压暗 + 暖光呼吸 + 光斑跟随 —— */
+/* warm private room light */
 .room {
   pointer-events: none;
   position: fixed;
@@ -39,78 +52,83 @@ body {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 85% 60% at 50% -5%, rgba(90, 20, 45, 0.45), transparent 55%),
-    radial-gradient(ellipse at center, transparent 25%, rgba(3, 1, 3, 0.78) 100%);
+    radial-gradient(ellipse 120% 70% at 50% -10%, rgba(120, 40, 70, 0.38), transparent 55%),
+    radial-gradient(ellipse at center, transparent 30%, rgba(6, 2, 6, 0.72) 100%);
 }
 
 .room-breath {
   position: absolute;
-  width: 80vmax;
-  height: 80vmax;
+  width: min(120vw, 720px);
+  height: min(120vw, 720px);
   left: 50%;
-  top: 25%;
-  margin: -40vmax 0 0 -40vmax;
-  background: radial-gradient(circle, rgba(255, 55, 110, 0.14), transparent 58%);
-  animation: breath 8s ease-in-out infinite;
-  will-change: transform, opacity;
+  top: 18%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255, 90, 140, 0.16), transparent 62%);
+  animation: breath 10s ease-in-out infinite;
 }
 
 @keyframes breath {
-  0%, 100% { transform: scale(0.95); opacity: 0.45; }
-  50% { transform: scale(1.15); opacity: 0.95; }
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
 }
 
 .room-spot {
   position: absolute;
-  inset: -15%;
+  inset: -20%;
   background: radial-gradient(
-    420px circle at var(--sx) var(--sy),
-    rgba(255, 95, 145, 0.22),
-    rgba(255, 70, 120, 0.06) 32%,
+    360px circle at var(--sx) var(--sy),
+    rgba(255, 110, 155, 0.18),
+    rgba(255, 80, 130, 0.05) 35%,
     transparent 58%
   );
-  transition: opacity 0.5s ease;
 }
 
 /* header */
 .top {
   position: sticky;
   top: 0;
-  z-index: 20;
-  height: var(--top);
+  z-index: 30;
+  height: calc(var(--top) + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--pad);
-  background: linear-gradient(180deg, rgba(8, 3, 6, 0.92), rgba(8, 3, 6, 0.55));
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(255, 120, 160, 0.12);
+  padding-left: max(var(--pad), env(safe-area-inset-left));
+  padding-right: max(var(--pad), env(safe-area-inset-right));
+  background: rgba(12, 6, 10, 0.86);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  border-bottom: 1px solid rgba(255, 140, 170, 0.12);
 }
 
 .logo {
-  position: relative;
-  z-index: 1;
   font-family: "Ma Shan Zheng", "STKaiti", cursive;
-  font-size: 1.95rem;
-  color: #ffb0c8;
+  font-size: 1.85rem;
+  color: #ffb6cc;
   text-decoration: none;
   letter-spacing: 0.12em;
-  transition: filter 0.5s var(--ease), transform 0.5s var(--ease);
+  line-height: 1;
+  transition: filter 0.4s var(--ease);
 }
 
 .logo:hover {
-  filter: drop-shadow(0 0 16px rgba(255, 100, 150, 0.55));
-  transform: scale(1.05);
+  filter: drop-shadow(0 0 14px rgba(255, 120, 160, 0.5));
 }
 
 .modes {
   display: flex;
-  gap: 3px;
-  padding: 4px;
+  gap: 2px;
+  padding: 3px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255, 80, 130, 0.06);
+  background: rgba(255, 100, 140, 0.06);
 }
 
 .mode {
@@ -123,93 +141,122 @@ body {
   background: transparent;
   color: var(--soft);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: 0.3s var(--ease);
 }
 
-.mode svg { display: block; opacity: 0.75; }
-.mode:hover { color: #ffc4d6; }
-.mode:hover svg { opacity: 1; }
+.mode svg {
+  display: block;
+  opacity: 0.8;
+}
+
 .mode.on {
   color: #fff;
-  background: linear-gradient(135deg, rgba(255, 70, 120, 0.6), rgba(160, 30, 80, 0.5));
-  box-shadow: 0 0 18px rgba(255, 80, 130, 0.35);
+  background: linear-gradient(135deg, rgba(255, 90, 140, 0.55), rgba(170, 40, 90, 0.48));
+  box-shadow: 0 0 16px rgba(255, 90, 140, 0.3);
 }
-.mode.on svg { opacity: 1; }
 
-/* gallery */
+.mode.on svg {
+  opacity: 1;
+}
+
+/* —— feed / grid —— */
 main {
   position: relative;
   z-index: 1;
-  padding: var(--pad);
-  max-width: 1600px;
+  width: 100%;
+  max-width: var(--max);
   margin: 0 auto;
+  padding: var(--pad);
+  padding-bottom: calc(28px + env(safe-area-inset-bottom));
 }
 
+/* 大图：手机一列大片，像私密相册 */
 .wall {
-  column-gap: var(--gap);
-  transition: filter 0.6s var(--linger);
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: 1fr;
+  align-items: start;
 }
 
-.wall-large { columns: 4 240px; }
-.wall-small { columns: 6 120px; }
-
-@media (max-width: 900px) {
-  .wall-large { columns: 3 180px; }
-  .wall-small { columns: 4 100px; }
-}
-@media (max-width: 560px) {
-  .wall-large { columns: 2 140px; }
-  .wall-small { columns: 3 90px; }
+/* 小图：手机两列整齐 */
+.wall-small {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
-/* 默认整体略暗——像没开足灯的房间 */
+/* 平板+ */
+@media (min-width: 640px) {
+  :root {
+    --max: 960px;
+    --gap: 14px;
+    --pad: 18px;
+    --radius: 16px;
+  }
+  .wall-large {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .wall-small {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 桌面 */
+@media (min-width: 1024px) {
+  :root {
+    --max: 1180px;
+    --gap: 16px;
+  }
+  .wall-large {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .wall-small {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* cards */
 .item {
-  break-inside: avoid;
-  margin: 0 0 var(--gap);
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  cursor: pointer;
   position: relative;
   display: block;
   width: 100%;
   padding: 0;
-  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card);
+  cursor: pointer;
   color: inherit;
   font: inherit;
-  background: #12080e;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  /* 统一竖图感，手机更整齐；真实比例由 aspect-ratio 内联覆盖 */
+  aspect-ratio: 3 / 4;
   transition:
-    transform 0.65s var(--linger),
-    box-shadow 0.65s var(--linger),
-    border-color 0.5s ease,
-    filter 0.7s var(--linger),
-    opacity 0.7s var(--linger);
-  filter: brightness(0.72) saturate(0.88);
-  opacity: 0.92;
+    transform 0.55s var(--linger),
+    box-shadow 0.55s var(--linger),
+    border-color 0.4s ease,
+    filter 0.55s var(--linger);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 }
 
-/* 关键：只剩她——其它人退后 */
-.wall.is-gazing .item:not(.is-near) {
-  filter: brightness(0.28) saturate(0.55) blur(1.2px);
-  opacity: 0.55;
-  transform: scale(0.985);
+/* 大图模式：尽量保留原比例，更自然 */
+.wall-large .item {
+  aspect-ratio: auto;
+  /* 内联 style 的 aspect-ratio 会优先生效 */
 }
 
-.wall.is-gazing .item.is-near {
-  filter: brightness(1.08) saturate(1.12);
-  opacity: 1;
-  z-index: 3;
-  border-color: rgba(255, 150, 190, 0.5);
-  transform: translateY(-6px) scale(1.02);
-  box-shadow:
-    0 28px 60px rgba(0, 0, 0, 0.55),
-    0 0 48px rgba(255, 70, 120, 0.32),
-    0 0 0 1px rgba(255, 160, 190, 0.25);
+.wall-large .item img {
+  position: relative;
+  height: auto;
+  object-fit: contain;
 }
 
-.item:focus-visible {
-  outline: 2px solid #ff7aa8;
-  outline-offset: 2px;
+/* 有预留比例时仍 absolute 填满 */
+.wall-large .item[style*="aspect-ratio"] img {
+  position: absolute;
+  height: 100%;
+  object-fit: cover;
 }
 
 .item img {
@@ -220,113 +267,148 @@ main {
   position: absolute;
   inset: 0;
   opacity: 0;
-  transform: scale(1.03);
-  transition:
-    opacity 0.3s ease,
-    transform 1.15s var(--linger),
-    filter 0.8s var(--ease);
-  filter: contrast(1.02);
+  transition: opacity 0.28s ease, transform 0.9s var(--linger), filter 0.6s ease;
+  transform: scale(1.02);
+  filter: saturate(1.05) brightness(0.96);
 }
 
-.item img.ready { opacity: 1; }
-
-/* 靠近：慢慢贴近 */
-.item.is-near img.ready {
-  transform: scale(1.12);
-  filter: contrast(1.05) saturate(1.08) brightness(1.04);
+.item img.ready {
+  opacity: 1;
 }
 
-/* 暗角 + 暖调，悬停时散开 */
+/* soft warm shade */
 .item .shade {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 50% 40%, transparent 20%, rgba(8, 2, 6, 0.45) 100%),
-    linear-gradient(to top, rgba(12, 2, 8, 0.55) 0%, transparent 50%);
-  opacity: 1;
-  transition: opacity 0.85s var(--linger);
-  mix-blend-mode: multiply;
+    linear-gradient(to top, rgba(18, 6, 12, 0.55) 0%, transparent 48%),
+    radial-gradient(ellipse at 50% 20%, rgba(255, 140, 170, 0.06), transparent 50%);
+  transition: opacity 0.6s var(--ease);
 }
 
-.item.is-near .shade {
-  opacity: 0.15;
-  mix-blend-mode: normal;
-}
-
-/* 光扫过——像指尖擦过 */
 .item .glint {
   position: absolute;
-  inset: -30%;
+  inset: -40%;
   z-index: 2;
   pointer-events: none;
   background: linear-gradient(
-    112deg,
-    transparent 42%,
-    rgba(255, 210, 230, 0.16) 50%,
-    transparent 58%
+    115deg,
+    transparent 40%,
+    rgba(255, 220, 235, 0.14) 50%,
+    transparent 60%
   );
-  transform: translateX(-80%) skewX(-8deg);
+  transform: translateX(-90%) skewX(-10deg);
   opacity: 0;
-  transition: transform 1.05s var(--linger), opacity 0.35s;
+  transition: transform 0.95s var(--linger), opacity 0.3s;
 }
 
-.item.is-near .glint {
-  opacity: 1;
-  transform: translateX(80%) skewX(-8deg);
-}
-
-/* 文案不抢戏：只在被注视时慢慢露出来 */
 .item .cap {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 3;
-  padding: 1.5rem 0.75rem 0.65rem;
+  padding: 1.4rem 0.85rem 0.75rem;
   font-family: "ZCOOL KuaiLe", "PingFang SC", sans-serif;
-  font-size: 0.88rem;
-  letter-spacing: 0.06em;
-  line-height: 1.35;
-  color: #ffe8f0;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
-  background: linear-gradient(to top, rgba(8, 2, 6, 0.92), transparent);
+  font-size: 0.92rem;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  color: #ffeaf2;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+  background: linear-gradient(to top, rgba(12, 4, 10, 0.88), transparent);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  transform: translateY(14px);
-  opacity: 0;
-  transition: transform 0.8s var(--linger), opacity 0.65s ease;
-}
-
-.item.is-near .cap {
-  transform: translateY(0);
-  opacity: 1;
+  transition: opacity 0.45s ease, transform 0.5s var(--ease);
 }
 
 .wall-small .cap {
-  font-size: 0.7rem;
-  padding: 1rem 0.45rem 0.4rem;
+  font-size: 0.72rem;
+  padding: 1rem 0.5rem 0.45rem;
   -webkit-line-clamp: 1;
 }
 
+/* —— 桌面：鼠标注视 —— */
+@media (hover: hover) and (pointer: fine) {
+  .item {
+    filter: brightness(0.88) saturate(0.95);
+  }
+
+  .wall.is-gazing .item:not(.is-near) {
+    filter: brightness(0.42) saturate(0.7);
+    opacity: 0.75;
+    transform: scale(0.99);
+  }
+
+  .item.is-near,
+  .item:hover {
+    filter: brightness(1.05) saturate(1.08);
+    border-color: rgba(255, 160, 190, 0.42);
+    transform: translateY(-4px) scale(1.015);
+    box-shadow:
+      0 20px 48px rgba(0, 0, 0, 0.4),
+      0 0 36px rgba(255, 90, 140, 0.22);
+    z-index: 2;
+  }
+
+  .item.is-near img.ready,
+  .item:hover img.ready {
+    transform: scale(1.08);
+    filter: saturate(1.1) brightness(1.03);
+  }
+
+  .item.is-near .shade,
+  .item:hover .shade {
+    opacity: 0.25;
+  }
+
+  .item.is-near .glint,
+  .item:hover .glint {
+    opacity: 1;
+    transform: translateX(90%) skewX(-10deg);
+  }
+
+  .item .cap {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .item.is-near .cap,
+  .item:hover .cap {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* —— 手机：温馨大片，不用糊掉其它图 —— */
 @media (hover: none) {
   .item {
-    filter: brightness(0.9) saturate(1);
-    opacity: 1;
+    filter: none;
   }
+
+  .item:active {
+    transform: scale(0.985);
+  }
+
   .item .cap {
-    opacity: 0.9;
-    transform: none;
+    opacity: 0.95;
   }
-  .item .shade { opacity: 0.45; }
-  .wall.is-gazing .item:not(.is-near) {
-    filter: brightness(0.9);
-    opacity: 1;
-    transform: none;
-    blur: 0;
+
+  .item .shade {
+    opacity: 0.7;
+  }
+
+  /* 轻触反馈：轻微提亮 */
+  .item.is-near {
+    border-color: rgba(255, 160, 190, 0.35);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 24px rgba(255, 90, 140, 0.15);
+  }
+
+  .item.is-near img.ready {
+    transform: scale(1.04);
   }
 }
 
@@ -336,9 +418,12 @@ main {
   padding: 3rem 1rem;
   font-size: 0.9rem;
 }
-.status.hide { display: none; }
 
-/* lightbox：更私密 */
+.status.hide {
+  display: none;
+}
+
+/* lightbox */
 .lb {
   position: fixed;
   inset: 0;
@@ -347,22 +432,29 @@ main {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  animation: lbIn 0.45s var(--ease) forwards;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  animation: lbIn 0.4s var(--ease) forwards;
 }
+
 @keyframes lbIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
-.lb[hidden] { display: none !important; }
+
+.lb[hidden] {
+  display: none !important;
+}
 
 .lb-dim {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse at 50% 45%, rgba(50, 10, 28, 0.4), rgba(2, 0, 3, 0.95) 72%);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: radial-gradient(ellipse at 50% 45%, rgba(50, 12, 28, 0.35), rgba(4, 1, 4, 0.94) 70%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .lb-stage {
@@ -371,99 +463,120 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.75rem;
   max-width: 100%;
-  animation: stageIn 0.7s var(--linger) both;
+  animation: stageIn 0.55s var(--linger) both;
 }
+
 @keyframes stageIn {
-  from { opacity: 0; transform: scale(0.94) translateY(18px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .lb img {
-  max-width: min(94vw, 1100px);
-  max-height: min(78vh, 900px);
+  max-width: min(96vw, 1100px);
+  max-height: min(75vh, 880px);
+  max-height: min(75dvh, 880px);
   object-fit: contain;
-  border-radius: 12px;
-  box-shadow:
-    0 30px 90px rgba(0, 0, 0, 0.7),
-    0 0 60px rgba(255, 70, 120, 0.18);
-  animation: drift 14s ease-in-out infinite alternate;
-}
-@keyframes drift {
-  from { transform: scale(1); }
-  to { transform: scale(1.025); }
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 90, 140, 0.12);
 }
 
 .lb-cap {
-  max-width: 36rem;
+  max-width: 34rem;
+  padding: 0 0.5rem;
   text-align: center;
   font-family: "ZCOOL KuaiLe", "PingFang SC", sans-serif;
-  font-size: 1.05rem;
-  letter-spacing: 0.1em;
-  color: rgba(255, 230, 240, 0.9);
+  font-size: clamp(0.9rem, 3.5vw, 1.05rem);
+  letter-spacing: 0.06em;
+  color: #ffe6f0;
   line-height: 1.5;
-  animation: capIn 0.8s 0.15s var(--linger) both;
-}
-@keyframes capIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
-.lb-x, .lb-p, .lb-n {
+.lb-x,
+.lb-p,
+.lb-n {
   position: absolute;
   z-index: 2;
   border: 1px solid var(--line);
-  background: rgba(20, 8, 14, 0.75);
-  color: #ffb3c8;
+  background: rgba(22, 10, 16, 0.82);
+  color: #ffb6cc;
   width: 44px;
   height: 44px;
   border-radius: 50%;
   cursor: pointer;
-  transition: 0.35s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+  transition: 0.3s var(--ease);
 }
-.lb-x:hover, .lb-p:hover, .lb-n:hover {
-  border-color: rgba(255, 150, 185, 0.5);
-  background: rgba(255, 70, 120, 0.32);
-  box-shadow: 0 0 22px rgba(255, 90, 140, 0.35);
+
+.lb-x {
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
 }
-.lb-x:hover { transform: scale(1.06); }
-.lb-p:hover, .lb-n:hover { transform: translateY(-50%) scale(1.06); }
+.lb-p {
+  left: max(8px, env(safe-area-inset-left));
+  top: 50%;
+  transform: translateY(-50%);
+}
+.lb-n {
+  right: max(8px, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+}
 
-.lb-x { top: 14px; right: 14px; }
-.lb-p { left: 12px; top: 50%; transform: translateY(-50%); }
-.lb-n { right: 12px; top: 50%; transform: translateY(-50%); }
-
-.lb-x::before, .lb-x::after {
+.lb-x::before,
+.lb-x::after {
   content: "";
   position: absolute;
-  left: 50%; top: 50%;
-  width: 14px; height: 1.5px;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 1.5px;
   background: currentColor;
 }
-.lb-x::before { transform: translate(-50%, -50%) rotate(45deg); }
-.lb-x::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.lb-x::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.lb-x::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
 
-.lb-p::before, .lb-n::before {
+.lb-p::before,
+.lb-n::before {
   content: "";
   position: absolute;
-  left: 50%; top: 50%;
-  width: 10px; height: 10px;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
   border-left: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
   background: transparent;
 }
-.lb-p::before { transform: translate(-35%, -50%) rotate(45deg); }
-.lb-n::before { transform: translate(-65%, -50%) rotate(-135deg); }
+.lb-p::before {
+  transform: translate(-35%, -50%) rotate(45deg);
+}
+.lb-n::before {
+  transform: translate(-65%, -50%) rotate(-135deg);
+}
 
-body.lb-on { overflow: hidden; }
-body.lb-on .room-spot { opacity: 0.3; }
+body.lb-on {
+  overflow: hidden;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .room-breath, .lb img, .item, .item img, .item .cap, .lb-stage {
+  .room-breath,
+  .item,
+  .item img,
+  .lb,
+  .lb-stage {
     animation: none !important;
-    transition-duration: 0.01ms !important;
+    transition: none !important;
   }
-  .item { filter: none; opacity: 1; }
-  .item .cap { opacity: 1; transform: none; }
 }

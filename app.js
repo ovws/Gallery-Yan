@@ -84,6 +84,8 @@
     btnSmall.classList.toggle("on", small);
     btnLarge.setAttribute("aria-pressed", small ? "false" : "true");
     btnSmall.setAttribute("aria-pressed", small ? "true" : "false");
+    // 切换模式时刷新比例占位
+    if (list.length) render();
   }
 
   function preloadUrl(url) {
@@ -125,7 +127,10 @@
         btn.className = "item";
         btn.setAttribute("aria-label", t || "图片 " + (i + 1));
         // reserve space immediately — prevents column reflow / screen jump
-        btn.style.aspectRatio = d.w + " / " + d.h;
+        // 大图模式保留真实比例；小图模式由 CSS 统一 3:4，手机更整齐
+        if (!wall.classList.contains("wall-small")) {
+          btn.style.aspectRatio = d.w + " / " + d.h;
+        }
 
         var img = document.createElement("img");
         img.alt = t || "";
@@ -386,7 +391,7 @@
 
   statusEl.textContent = "准备图片…";
 
-  fetch("images.json?v=9", { cache: "no-store" })
+  fetch("images.json?v=10", { cache: "no-store" })
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
