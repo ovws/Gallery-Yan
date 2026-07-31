@@ -1,10 +1,9 @@
 /**
- * 嫣嫣最可爱啦 — full-width proportional grid gallery
+ * 再看一会儿 — % waterfall + soft gaze
  */
 (function () {
   "use strict";
 
-  // clear broken legacy SW
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations().then(function (regs) {
       regs.forEach(function (r) {
@@ -34,7 +33,6 @@
 
   var list = [];
   var cur = 0;
-  var small = false;
   var preloaded = Object.create(null);
   var BOOT = 12;
   var AHEAD = 10;
@@ -71,15 +69,13 @@
     return { w: w, h: h };
   }
 
-  function setMode(isSmall) {
-    small = !!isSmall;
+  function setMode(small) {
     wall.classList.toggle("is-small", small);
     wall.classList.toggle("is-large", !small);
     btnLarge.classList.toggle("on", !small);
     btnSmall.classList.toggle("on", small);
     btnLarge.setAttribute("aria-pressed", small ? "false" : "true");
     btnSmall.setAttribute("aria-pressed", small ? "true" : "false");
-    if (list.length) render();
   }
 
   function preloadUrl(url) {
@@ -119,13 +115,8 @@
         btn.type = "button";
         btn.className = "card";
         btn.setAttribute("aria-label", t || "图片 " + (i + 1));
-
-        // 大图：真实比例；小图：统一 3:4 更整齐
-        if (small) {
-          btn.style.aspectRatio = "3 / 4";
-        } else {
-          btn.style.aspectRatio = d.w + " / " + d.h;
-        }
+        // 真实比例占位 → 瀑布流高度自然不同，但不抖动
+        btn.style.aspectRatio = d.w + " / " + d.h;
 
         var img = document.createElement("img");
         img.alt = t || "";
@@ -154,8 +145,13 @@
         veil.className = "veil";
         veil.setAttribute("aria-hidden", "true");
 
+        var glint = document.createElement("span");
+        glint.className = "glint";
+        glint.setAttribute("aria-hidden", "true");
+
         btn.appendChild(img);
         btn.appendChild(veil);
+        btn.appendChild(glint);
 
         if (t) {
           var cap = document.createElement("span");
@@ -190,6 +186,7 @@
 
     wall.appendChild(frag);
     observeLazy();
+    initSpot();
     requestAnimationFrame(function () {
       preloadRange(BOOT, AHEAD);
     });
@@ -237,6 +234,43 @@
     });
   }
 
+  function initSpot() {
+    try {
+      if (window.matchMedia("(pointer: coarse)").matches) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    } catch (e) {
+      return;
+    }
+    var x = 50;
+    var y = 28;
+    var tx = 50;
+    var ty = 28;
+    var run = false;
+    function tick() {
+      x += (tx - x) * 0.07;
+      y += (ty - y) * 0.07;
+      document.documentElement.style.setProperty("--sx", x + "%");
+      document.documentElement.style.setProperty("--sy", y + "%");
+      if (Math.abs(tx - x) > 0.2 || Math.abs(ty - y) > 0.2) {
+        requestAnimationFrame(tick);
+      } else {
+        run = false;
+      }
+    }
+    window.addEventListener(
+      "pointermove",
+      function (e) {
+        tx = (e.clientX / window.innerWidth) * 100;
+        ty = (e.clientY / window.innerHeight) * 100;
+        if (!run) {
+          run = true;
+          requestAnimationFrame(tick);
+        }
+      },
+      { passive: true }
+    );
+  }
+
   function openLb(i) {
     cur = i;
     showLb();
@@ -279,6 +313,15 @@
     setMode(true);
   });
 
+  function setMode(small) {
+    wall.classList.toggle("is-small", small);
+    wall.classList.toggle("is-large", !small);
+    btnLarge.classList.toggle("on", !small);
+    btnSmall.classList.toggle("on", small);
+    btnLarge.setAttribute("aria-pressed", small ? "false" : "true");
+    btnSmall.setAttribute("aria-pressed", small ? "true" : "false");
+  }
+
   lbX.addEventListener("click", closeLb);
   if (lbBg) lbBg.addEventListener("click", closeLb);
   lbP.addEventListener("click", function (e) {
@@ -297,47 +340,9 @@
     if (e.key === "ArrowRight") nav(1);
   });
 
-  // soft spotlight follow (desktop only)
-  (function () {
-    try {
-      if (window.matchMedia("(pointer: coarse)").matches) return;
-    } catch (e) {
-      return;
-    }
-    var root = document.documentElement;
-    var x = 50;
-    var y = 30;
-    var tx = 50;
-    var ty = 30;
-    var run = false;
-    function tick() {
-      x += (tx - x) * 0.08;
-      y += (ty - y) * 0.08;
-      root.style.setProperty("--sx", x + "%");
-      root.style.setProperty("--sy", y + "%");
-      if (Math.abs(tx - x) > 0.15 || Math.abs(ty - y) > 0.15) {
-        requestAnimationFrame(tick);
-      } else {
-        run = false;
-      }
-    }
-    window.addEventListener(
-      "pointermove",
-      function (e) {
-        tx = (e.clientX / window.innerWidth) * 100;
-        ty = (e.clientY / window.innerHeight) * 100;
-        if (!run) {
-          run = true;
-          requestAnimationFrame(tick);
-        }
-      },
-      { passive: true }
-    );
-  })();
+  statusEl.textContent = "再等等…";
 
-  statusEl.textContent = "准备中…";
-
-  fetch("images.json?v=11", { cache: "no-store" })
+  fetch("images.json?v=12", { cache: "no-store" })
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
@@ -347,15 +352,16 @@
       list = data.slice().sort(function (a, b) {
         return String(b.date || "").localeCompare(String(a.date || ""));
       });
-      statusEl.textContent = "加载图片…";
+      statusEl.textContent = "再看一会儿…";
       return preloadRange(0, Math.min(BOOT, list.length)).then(function () {
         statusEl.classList.add("hide");
         statusEl.textContent = "";
         setMode(false);
+        render();
       });
     })
     .catch(function (err) {
       console.error(err);
-      statusEl.textContent = "加载失败，请 Ctrl+F5 强制刷新";
+      statusEl.textContent = "加载失败，请 Ctrl+F5 强刷";
     });
 })();

@@ -1,16 +1,19 @@
-/* 嫣嫣最可爱啦 — full-width proportional grid */
+/* 再看一会儿 — full-width % waterfall, soft & flirty */
 
 :root {
-  --bg: #140a0f;
-  --header-h: 60px;
-  --pad: clamp(10px, 2vw, 28px);
-  --gap: clamp(8px, 1.2vw, 16px);
-  --radius: clamp(12px, 1.5vw, 18px);
-  --pink: #ff8ab0;
-  --text: #fff4f7;
-  --muted: #c9a0ad;
-  --line: rgba(255, 160, 190, 0.18);
+  --bg: #0e060a;
+  --card: #1a0e14;
+  --text: #fff3f7;
+  --muted: #c49aaa;
+  --pink: #ff7aa8;
+  --line: rgba(255, 150, 185, 0.16);
+  --pad: 2.2%;
+  --gap: 1.1%;
+  --top: 4.2rem;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --linger: cubic-bezier(0.16, 1, 0.3, 1);
+  --sx: 50%;
+  --sy: 28%;
 }
 
 *,
@@ -34,46 +37,96 @@ body {
   background: var(--bg);
 }
 
-/* soft full-bleed background */
-.bg {
+/* atmosphere — light only */
+.mood {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse 90% 55% at 50% -5%, rgba(150, 40, 80, 0.35), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 100% 80%, rgba(90, 25, 55, 0.2), transparent 50%),
-    radial-gradient(ellipse 45% 35% at 0% 60%, rgba(70, 20, 45, 0.16), transparent 50%),
-    var(--bg);
+  overflow: hidden;
 }
 
-/* header — full width */
-.header {
+.mood-a {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 95% 55% at 50% -8%, rgba(140, 35, 75, 0.4), transparent 58%),
+    radial-gradient(ellipse at center, transparent 28%, rgba(4, 1, 4, 0.78) 100%);
+}
+
+.mood-b {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  left: 50%;
+  top: 22%;
+  margin: -35vmax 0 0 -35vmax;
+  background: radial-gradient(circle, rgba(255, 70, 120, 0.14), transparent 60%);
+  animation: breath 9s ease-in-out infinite;
+}
+
+@keyframes breath {
+  0%, 100% { transform: scale(0.96); opacity: 0.5; }
+  50% { transform: scale(1.12); opacity: 0.95; }
+}
+
+.mood-spot {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    38vw circle at var(--sx) var(--sy),
+    rgba(255, 100, 150, 0.2),
+    rgba(255, 70, 120, 0.05) 34%,
+    transparent 58%
+  );
+}
+
+/* header */
+.top {
   position: sticky;
   top: 0;
-  z-index: 40;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: calc(var(--header-h) + env(safe-area-inset-top));
+  gap: 3%;
+  min-height: calc(var(--top) + env(safe-area-inset-top));
   padding:
-    env(safe-area-inset-top) max(var(--pad), env(safe-area-inset-right))
-    0 max(var(--pad), env(safe-area-inset-left));
-  background: rgba(16, 8, 12, 0.82);
+    env(safe-area-inset-top)
+    max(var(--pad), env(safe-area-inset-right))
+    0.55rem
+    max(var(--pad), env(safe-area-inset-left));
+  background: linear-gradient(180deg, rgba(10, 4, 8, 0.92), rgba(10, 4, 8, 0.55));
   backdrop-filter: blur(16px) saturate(1.15);
   -webkit-backdrop-filter: blur(16px) saturate(1.15);
-  border-bottom: 1px solid rgba(255, 140, 175, 0.12);
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(90deg, transparent, rgba(255, 130, 170, 0.3), transparent) 1;
 }
 
-.title {
+.brand {
+  min-width: 0;
+}
+
+.brand-mark {
   font-family: "Ma Shan Zheng", "STKaiti", cursive;
-  font-size: clamp(1.45rem, 4.2vw, 2.1rem);
+  font-size: clamp(0.95rem, 2.2vw, 1.15rem);
+  color: rgba(255, 170, 195, 0.75);
+  letter-spacing: 0.35em;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+
+.brand-title {
+  font-family: "Ma Shan Zheng", "STKaiti", cursive;
+  font-size: clamp(1.55rem, 4.5vw, 2.35rem);
   font-weight: 400;
-  letter-spacing: 0.08em;
-  color: #ffb6cc;
+  letter-spacing: 0.12em;
   line-height: 1.15;
-  text-shadow: 0 0 28px rgba(255, 120, 160, 0.25);
+  color: transparent;
+  background: linear-gradient(115deg, #fff5f8 0%, #ffb3c8 42%, #ff8ab0 72%, #f0c4a0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 22px rgba(255, 110, 150, 0.28));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -86,7 +139,7 @@ body {
   padding: 4px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255, 100, 150, 0.07);
+  background: rgba(255, 100, 150, 0.06);
 }
 
 .mode {
@@ -100,90 +153,89 @@ body {
   color: var(--muted);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: 0.25s var(--ease);
+  transition: 0.3s var(--ease);
 }
 
-.mode svg {
-  opacity: 0.85;
-}
-
+.mode svg { opacity: 0.8; }
 .mode.on {
   color: #fff;
-  background: linear-gradient(135deg, rgba(255, 90, 140, 0.55), rgba(170, 40, 90, 0.48));
-  box-shadow: 0 0 16px rgba(255, 90, 140, 0.28);
+  background: linear-gradient(135deg, rgba(255, 80, 130, 0.55), rgba(170, 40, 90, 0.48));
+  box-shadow: 0 0 16px rgba(255, 90, 140, 0.32);
 }
+.mode.on svg { opacity: 1; }
 
-.mode.on svg {
-  opacity: 1;
-}
-
-/* main — FULL WIDTH, proportional columns */
+/* waterfall — full width, % padding/gap, column-width in %/clamp */
 .main {
   position: relative;
   z-index: 1;
   width: 100%;
   padding:
-    var(--pad)
+    1.2%
     max(var(--pad), env(safe-area-inset-right))
-    calc(28px + env(safe-area-inset-bottom))
+    calc(3% + env(safe-area-inset-bottom))
     max(var(--pad), env(safe-area-inset-left));
 }
 
-/* CSS Grid with minmax — scales with viewport, no fixed max-width cage */
 .wall {
-  display: grid;
   width: 100%;
-  gap: var(--gap);
-  align-items: start;
+  column-gap: var(--gap);
+  column-fill: balance;
 }
 
-/* 大图：列少、格子更宽，按比例自适应 */
+/* 大图：更宽的列 → 更少列、图更大 */
 .wall.is-large {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  column-width: clamp(42%, 28vw, 22%);
+  /* fallback for browsers: use min width that scales */
+  column-width: clamp(200px, 22vw, 360px);
 }
 
-/* 小图：列多、更密 */
+/* 小图：更窄列 → 更密 */
 .wall.is-small {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
+  column-width: clamp(28%, 14vw, 12%);
+  column-width: clamp(110px, 13vw, 180px);
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
+  :root {
+    --pad: 3.2%;
+    --gap: 2.2%;
+  }
   .wall.is-large {
-    grid-template-columns: 1fr;
+    column-width: 100%;
+    columns: 1;
   }
   .wall.is-small {
-    grid-template-columns: repeat(2, 1fr);
+    column-width: 46%;
+    columns: 2;
   }
 }
 
-/* card */
+/* cards — natural height waterfall */
 .card {
-  position: relative;
-  display: block;
+  break-inside: avoid;
   width: 100%;
+  margin: 0 0 var(--gap);
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: clamp(12px, 1.2vw, 16px);
   overflow: hidden;
-  background: #1a1016;
+  background: var(--card);
   cursor: pointer;
+  position: relative;
+  display: block;
   color: inherit;
   font: inherit;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
-  /* default portrait; JS sets real ratio when known */
-  aspect-ratio: 3 / 4;
+  /* aspect-ratio 由 JS 按真实比例写入，瀑布流高度自然不同 */
   transition:
-    transform 0.45s var(--ease),
-    box-shadow 0.45s var(--ease),
-    border-color 0.35s ease,
-    filter 0.5s var(--ease);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-}
-
-.card:focus-visible {
-  outline: 2px solid var(--pink);
-  outline-offset: 2px;
+    transform 0.55s var(--linger),
+    box-shadow 0.55s var(--linger),
+    border-color 0.4s ease,
+    filter 0.6s var(--linger),
+    opacity 0.6s var(--linger);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+  filter: brightness(0.9) saturate(0.95);
 }
 
 .card img {
@@ -195,8 +247,8 @@ body {
   object-fit: cover;
   opacity: 0;
   transform: scale(1.02);
-  transition: opacity 0.3s ease, transform 0.7s var(--ease), filter 0.5s ease;
-  filter: saturate(1.04) brightness(0.97);
+  transition: opacity 0.3s ease, transform 1s var(--linger), filter 0.7s ease;
+  filter: contrast(1.02);
 }
 
 .card img.is-on {
@@ -208,13 +260,27 @@ body {
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(10, 2, 8, 0.55) 0%, transparent 46%),
+    radial-gradient(ellipse at 50% 100%, rgba(255, 80, 130, 0.12), transparent 55%);
+  opacity: 0.95;
+  transition: opacity 0.7s var(--ease);
+}
+
+.card .glint {
+  position: absolute;
+  inset: -35%;
+  z-index: 2;
+  pointer-events: none;
   background: linear-gradient(
-    to top,
-    rgba(12, 4, 10, 0.72) 0%,
-    rgba(12, 4, 10, 0.12) 42%,
-    transparent 65%
+    112deg,
+    transparent 40%,
+    rgba(255, 215, 230, 0.15) 50%,
+    transparent 60%
   );
-  transition: opacity 0.45s ease;
+  transform: translateX(-85%) skewX(-10deg);
+  opacity: 0;
+  transition: transform 1s var(--linger), opacity 0.35s;
 }
 
 .card .cap {
@@ -222,70 +288,84 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 2;
-  padding: 1.15rem 0.75rem 0.65rem;
+  z-index: 3;
+  padding: 1.35rem 0.75rem 0.65rem;
   font-family: "ZCOOL KuaiLe", "PingFang SC", sans-serif;
-  font-size: clamp(0.75rem, 1.6vw, 0.95rem);
-  letter-spacing: 0.04em;
+  font-size: clamp(0.78rem, 1.5vw, 0.95rem);
+  letter-spacing: 0.05em;
   line-height: 1.35;
   color: #ffeaf2;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(to top, rgba(8, 2, 6, 0.9), transparent);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  transition: opacity 0.35s ease, transform 0.4s var(--ease);
+  transform: translateY(12px);
+  opacity: 0;
+  transition: transform 0.7s var(--linger), opacity 0.55s ease;
 }
 
 .wall.is-small .card .cap {
-  font-size: 0.7rem;
-  padding: 0.9rem 0.45rem 0.4rem;
+  font-size: 0.72rem;
+  padding: 1rem 0.5rem 0.45rem;
   -webkit-line-clamp: 1;
 }
 
-/* desktop hover: soft focus */
+/* 注视：只剩这一张 */
 @media (hover: hover) and (pointer: fine) {
   .wall.is-focus .card:not(.is-hot) {
-    filter: brightness(0.48) saturate(0.75);
+    filter: brightness(0.32) saturate(0.6);
+    opacity: 0.62;
+    transform: scale(0.99);
   }
 
   .card.is-hot,
   .card:hover {
     z-index: 2;
-    border-color: rgba(255, 160, 195, 0.45);
-    transform: translateY(-4px);
+    filter: brightness(1.06) saturate(1.1);
+    opacity: 1;
+    border-color: rgba(255, 155, 190, 0.48);
+    transform: translateY(-5px);
     box-shadow:
-      0 18px 40px rgba(0, 0, 0, 0.42),
-      0 0 32px rgba(255, 90, 140, 0.2);
-    filter: brightness(1.04) saturate(1.06);
+      0 22px 50px rgba(0, 0, 0, 0.48),
+      0 0 40px rgba(255, 70, 120, 0.28);
   }
 
   .card.is-hot img.is-on,
   .card:hover img.is-on {
-    transform: scale(1.06);
-    filter: saturate(1.1) brightness(1.03);
+    transform: scale(1.1);
+    filter: contrast(1.05) saturate(1.08) brightness(1.04);
   }
 
   .card.is-hot .veil,
   .card:hover .veil {
-    opacity: 0.55;
+    opacity: 0.2;
   }
 
-  .card .cap {
-    opacity: 0;
-    transform: translateY(8px);
+  .card.is-hot .glint,
+  .card:hover .glint {
+    opacity: 1;
+    transform: translateX(85%) skewX(-10deg);
   }
 
   .card.is-hot .cap,
   .card:hover .cap {
-    opacity: 1;
     transform: translateY(0);
+    opacity: 1;
   }
 }
 
 @media (hover: none) {
+  .card {
+    filter: brightness(0.96) saturate(1.02);
+  }
   .card .cap {
-    opacity: 0.95;
+    opacity: 0.92;
+    transform: none;
+  }
+  .card .veil {
+    opacity: 0.65;
   }
   .card:active {
     transform: scale(0.985);
@@ -295,13 +375,10 @@ body {
 .status {
   text-align: center;
   color: var(--muted);
-  padding: 3rem 1rem;
+  padding: 8% 4%;
   font-size: 0.9rem;
 }
-
-.status.hide {
-  display: none;
-}
+.status.hide { display: none; }
 
 /* lightbox */
 .lb {
@@ -311,25 +388,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
-  animation: fade 0.3s var(--ease) forwards;
+  padding: max(12px, env(safe-area-inset-top)) 3% max(12px, env(safe-area-inset-bottom));
+  animation: lbIn 0.4s var(--ease) forwards;
 }
-
-@keyframes fade {
+@keyframes lbIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
-.lb[hidden] {
-  display: none !important;
-}
+.lb[hidden] { display: none !important; }
 
 .lb-bg {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, rgba(40, 10, 24, 0.4), rgba(4, 1, 4, 0.94) 70%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: radial-gradient(ellipse at 50% 45%, rgba(45, 10, 26, 0.42), rgba(3, 1, 3, 0.95) 70%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .lb-box {
@@ -338,40 +411,39 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.8rem;
   max-width: 100%;
-  animation: up 0.4s var(--ease) both;
+  animation: stageIn 0.65s var(--linger) both;
 }
-
-@keyframes up {
-  from {
-    opacity: 0.6;
-    transform: scale(0.97) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+@keyframes stageIn {
+  from { opacity: 0.5; transform: scale(0.95) translateY(14px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .lb-box img {
-  max-width: min(96vw, 1200px);
-  max-height: min(78vh, 900px);
-  max-height: min(78dvh, 900px);
+  max-width: min(94vw, 92%);
+  max-height: min(76vh, 76dvh);
   object-fit: contain;
-  border-radius: 12px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+  border-radius: 14px;
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.65),
+    0 0 50px rgba(255, 70, 120, 0.16);
+  animation: drift 12s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  from { transform: scale(1); }
+  to { transform: scale(1.02); }
 }
 
 .lb-cap {
   max-width: 36rem;
   text-align: center;
   font-family: "ZCOOL KuaiLe", "PingFang SC", sans-serif;
-  font-size: clamp(0.9rem, 3.2vw, 1.1rem);
-  letter-spacing: 0.06em;
-  color: #ffe6f0;
+  font-size: clamp(0.9rem, 3vw, 1.1rem);
+  letter-spacing: 0.08em;
+  color: rgba(255, 230, 240, 0.92);
   line-height: 1.5;
-  padding: 0 0.5rem;
+  padding: 0 2%;
 }
 
 .lb-btn {
@@ -381,10 +453,16 @@ body {
   height: 44px;
   border: 1px solid var(--line);
   border-radius: 50%;
-  background: rgba(22, 10, 16, 0.85);
+  background: rgba(20, 8, 14, 0.8);
   color: #ffb6cc;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition: 0.3s var(--ease);
+}
+.lb-btn:hover {
+  border-color: rgba(255, 150, 185, 0.5);
+  background: rgba(255, 70, 120, 0.3);
+  box-shadow: 0 0 20px rgba(255, 90, 140, 0.32);
 }
 
 .lb-x {
@@ -401,6 +479,8 @@ body {
   top: 50%;
   transform: translateY(-50%);
 }
+.lb-p:hover, .lb-n:hover { transform: translateY(-50%) scale(1.05); }
+.lb-x:hover { transform: scale(1.05); }
 
 .lb-x::before,
 .lb-x::after {
@@ -425,23 +505,25 @@ body {
   height: 10px;
   border-left: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
+  background: transparent;
 }
 .lb-p::before { transform: translate(-35%, -50%) rotate(45deg); }
 .lb-n::before { transform: translate(-65%, -50%) rotate(-135deg); }
 
-body.lb-open {
-  overflow: hidden;
-}
+body.lb-open { overflow: hidden; }
+body.lb-open .mood-spot { opacity: 0.35; }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .mood-b,
+  .card,
+  .card img,
+  .card .cap,
+  .lb,
+  .lb-box,
+  .lb-box img {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
-  .card .cap {
-    opacity: 1 !important;
-    transform: none !important;
-  }
+  .card { filter: none; }
+  .card .cap { opacity: 1; transform: none; }
 }
