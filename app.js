@@ -1,5 +1,6 @@
 /**
- * 嫣 — virtualized grid (layout-fixed)
+ * 嫣 — virtual grid + motion atmosphere
+ * Atmosphere is conveyed by light, tilt, zoom, dimming — not slogans/emoji.
  */
 (() => {
   "use strict";
@@ -10,6 +11,7 @@
   const lightbox = document.getElementById("lightbox");
   const lbImg = document.getElementById("lb-img");
   const lbName = document.getElementById("lb-name");
+  const moodSpot = document.getElementById("mood-spot");
 
   let images = [];
   let current = 0;
@@ -18,17 +20,38 @@
   let cols = 1;
   let cellW = 0;
   let cellH = 0;
-  let gap = 8;
-  let pad = 10;
+  let gap = 10;
+  let pad = 12;
   let totalRows = 0;
   let scrollRaf = 0;
   let resizeRaf = 0;
 
   const ROW_BUFFER = 3;
   const ASPECT_H_OVER_W = 4 / 3;
+  const reducedMotion = (() => {
+    try {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    } catch (_) {
+      return false;
+    }
+  })();
+  const finePointer = (() => {
+    try {
+      return window.matchMedia("(pointer: fine)").matches;
+    } catch (_) {
+      return true;
+    }
+  })();
+
   /** @type {Map<number, HTMLElement>} */
   const mounted = new Map();
+  /** base x/y for each mounted card */
+  const bases = new Map();
   const preloadCache = new Set();
+
+  let hotIndex = -1;
+  let ptrX = 0;
+  let ptrY = 0;
 
   function assetUrl(src) {
     return String(src || "")
@@ -56,7 +79,7 @@
     n = n.replace(/^sad_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_/, "");
     n = n.replace(/_\d+_\d+$/, "");
     n = n.replace(/#/g, " #").replace(/\s+/g, " ").trim();
-    return n || "未命名";
+    return n || "";
   }
 
   function formatDate(dateStr) {
@@ -77,10 +100,9 @@
   }
 
   function measure() {
-    // scroller has padding; clientWidth includes padding box, content width needs subtract
     const cs = getComputedStyle(scroller);
-    pad = parseFloat(cs.paddingLeft) || 10;
-    gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--gap")) || 8;
+    pad = parseFloat(cs.paddingLeft) || 12;
+    gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--gap")) || 10;
 
     const innerW = Math.max(120, scroller.clientWidth - pad * 2);
     const minCol = minColForMode(innerW);
@@ -105,11 +127,17 @@
       btn.classList.toggle("active", on);
       btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
-    // remount all (names/date differ by mode)
-    for (const [, el] of mounted) el.remove();
-    mounted.clear();
+    clearMounted();
     measure();
     syncWindow();
+  }
+
+  function clearMounted() {
+    for (const [, el] of mounted) el.remove();
+    mounted.clear();
+    bases.clear();
+    hotIndex = -1;
+    galleryEl.classList.remove("is-focusing");
   }
 
   function createCard(index) {
@@ -122,21 +150,29 @@
     card.dataset.index = String(index);
     card.tabIndex = 0;
     card.setAttribute("role", "listitem");
-    card.setAttribute("aria-label", label);
+    if (label) card.setAttribute("aria-label", label);
 
     const wrap = document.createElement("div");
     wrap.className = "card-img-wrap";
 
     const img = document.createElement("img");
-    img.alt = label;
+    img.alt = label || "";
     img.decoding = "async";
     img.loading = "lazy";
     img.draggable = false;
     img.src = assetUrl(thumbOf(item));
 
+    const veil = document.createElement("div");
+    veil.className = "card-veil";
+    veil.setAttribute("aria-hidden", "true");
+
+    const shine = document.createElement("div");
+    shine.className = "card-shine";
+    shine.setAttribute("aria-hidden", "true");
+
     const nameEl = document.createElement("p");
     nameEl.className = "card-name";
-    nameEl.append(document.createTextNode(label));
+    if (label) nameEl.append(document.createTextNode(label));
     if (date && viewMode === "large") {
       const d = document.createElement("span");
       d.className = "card-date";
@@ -144,9 +180,22 @@
       nameEl.appendChild(d);
     }
 
-    wrap.append(img, nameEl);
+    wrap.append(img, veil, shine, nameEl);
     card.appendChild(wrap);
+
+    // motion: attention + tilt
+    card.addEventListener("pointerenter", () => setHot(index, card));
+    card.addEventListener("pointerleave", () => clearHot(index, card));
+    if (finePointer && !reducedMotion) {
+      card.addEventListener("pointermove", (e) => tiltCard(card, e));
+    }
+
     return card;
+  }
+
+  function applyTransform(card, index, extra = "") {
+    const b = bases.get(index) || { x: 0, y: 0 };
+    card.style.transform = `translate3d(${b.x}px, ${b.y}px, 0)${extra}`;
   }
 
   function positionCard(card, index) {
@@ -154,9 +203,63 @@
     const col = index % cols;
     const x = col * (cellW + gap);
     const y = row * (cellH + gap);
+    bases.set(index, { x, y });
     card.style.width = `${cellW}px`;
     card.style.height = `${cellH}px`;
-    card.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+
+    if (card.classList.contains("is-hot") && finePointer && !reducedMotion) {
+      // keep current tilt; only update base next leave
+      const t = card.dataset.tilt || "";
+      applyTransform(card, index, t);
+    } else {
+      card.dataset.tilt = "";
+      applyTransform(card, index, "");
+    }
+  }
+
+  function tiltCard(card, e) {
+    if (reducedMotion) return;
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    // soft lean toward pointer — intimate, not flashy
+    const rx = (-py * 9).toFixed(2);
+    const ry = (px * 11).toFixed(2);
+    const lift = " translateZ(18px) scale(1.035)";
+    const extra = ` perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)${lift}`;
+    card.dataset.tilt = extra;
+    const idx = Number(card.dataset.index);
+    applyTransform(card, idx, extra);
+  }
+
+  function setHot(index, card) {
+    hotIndex = index;
+    galleryEl.classList.add("is-focusing");
+    for (const [i, el] of mounted) {
+      el.classList.toggle("is-hot", i === index);
+      if (i !== index) {
+        el.dataset.tilt = "";
+        applyTransform(el, i, "");
+      }
+    }
+    card.classList.add("is-hot");
+  }
+
+  function clearHot(index, card) {
+    if (hotIndex === index) hotIndex = -1;
+    card.classList.remove("is-hot");
+    card.dataset.tilt = "";
+    applyTransform(card, index, "");
+
+    // if nothing hot left
+    if (hotIndex < 0) {
+      galleryEl.classList.remove("is-focusing");
+      for (const [i, el] of mounted) {
+        el.classList.remove("is-hot");
+        el.dataset.tilt = "";
+        applyTransform(el, i, "");
+      }
+    }
   }
 
   function visibleRange() {
@@ -180,10 +283,7 @@
     const { start, end } = visibleRange();
 
     if (end < start) {
-      for (const [idx, el] of mounted) {
-        el.remove();
-        mounted.delete(idx);
-      }
+      clearMounted();
       return;
     }
 
@@ -191,6 +291,11 @@
       if (idx < start || idx > end) {
         el.remove();
         mounted.delete(idx);
+        bases.delete(idx);
+        if (hotIndex === idx) {
+          hotIndex = -1;
+          galleryEl.classList.remove("is-focusing");
+        }
       }
     }
 
@@ -205,6 +310,7 @@
         added = true;
       }
       positionCard(el, i);
+      if (hotIndex === i) el.classList.add("is-hot");
     }
     if (added) galleryEl.appendChild(frag);
   }
@@ -224,6 +330,46 @@
       measure();
       syncWindow();
     });
+  }
+
+  /* cursor light follows slowly */
+  function initMoodSpot() {
+    if (!moodSpot || !finePointer || reducedMotion) {
+      if (moodSpot) moodSpot.style.opacity = "0.5";
+      return;
+    }
+    let x = window.innerWidth * 0.5;
+    let y = window.innerHeight * 0.35;
+    let tx = x;
+    let ty = y;
+    let active = false;
+
+    const tick = () => {
+      x += (tx - x) * 0.08;
+      y += (ty - y) * 0.08;
+      document.documentElement.style.setProperty("--spot-x", `${(x / window.innerWidth) * 100}%`);
+      document.documentElement.style.setProperty("--spot-y", `${(y / window.innerHeight) * 100}%`);
+      if (Math.abs(tx - x) > 0.5 || Math.abs(ty - y) > 0.5) {
+        requestAnimationFrame(tick);
+      } else {
+        active = false;
+      }
+    };
+
+    window.addEventListener(
+      "pointermove",
+      (e) => {
+        ptrX = e.clientX;
+        ptrY = e.clientY;
+        tx = e.clientX;
+        ty = e.clientY;
+        if (!active) {
+          active = true;
+          requestAnimationFrame(tick);
+        }
+      },
+      { passive: true }
+    );
   }
 
   function preloadUrl(url) {
@@ -283,7 +429,7 @@
         delete lbImg.dataset.full;
         if (lbName) lbName.textContent = "";
       }
-    }, 200);
+    }, 400);
   }
 
   function nav(delta) {
@@ -349,43 +495,34 @@
   function registerSW() {
     if (!("serviceWorker" in navigator)) return;
     if (!/^https?:$/.test(location.protocol)) return;
-    // bump cache by re-registering; skip if broken cache
-    navigator.serviceWorker.getRegistrations().then((regs) => {
-      // keep SW but don't block first paint
-      navigator.serviceWorker.register("./sw.js").catch(() => {});
-    });
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
 
   async function init() {
+    initMoodSpot();
     try {
-      // avoid stale force-cache hiding updates
       const res = await fetch("images.json", { cache: "no-cache" });
       if (!res.ok) throw new Error("images.json " + res.status);
       const data = await res.json();
-      if (!Array.isArray(data) || !data.length) throw new Error("empty list");
+      if (!Array.isArray(data) || !data.length) throw new Error("empty");
 
       images = data.slice().sort((a, b) => {
         return (b.date || "").localeCompare(a.date || "") || (b.name || "").localeCompare(a.name || "");
       });
 
       loaderEl.classList.add("hidden");
-
-      // measure after loader hidden (layout stable)
       requestAnimationFrame(() => {
         measure();
         syncWindow();
-        // second pass after fonts/layout settle
         requestAnimationFrame(() => {
           measure();
           syncWindow();
         });
       });
-
       registerSW();
     } catch (err) {
       console.error(err);
-      loaderEl.innerHTML =
-        '<p style="color:#ffb3c1;font-family:system-ui;padding:2rem;text-align:center">加载失败，请刷新重试</p>';
+      loaderEl.innerHTML = "";
     }
   }
 

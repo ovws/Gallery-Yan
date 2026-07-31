@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="嫣" />
-  <meta name="theme-color" content="#12060c" />
+  <meta name="theme-color" content="#0e060a" />
   <title>嫣</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,16 +13,26 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.85em' x='50%' text-anchor='middle' font-size='72' fill='%23ff7aa2' font-family='serif'>嫣</text></svg>" />
 </head>
 <body>
+  <!-- pure light layers, no glyphs -->
+  <div class="mood" aria-hidden="true">
+    <div class="mood-vignette"></div>
+    <div class="mood-breath"></div>
+    <div class="mood-spot" id="mood-spot"></div>
+  </div>
+
   <header class="site-header">
     <a class="brand" href="./" aria-label="嫣">嫣</a>
-    <div class="view-toggle" role="group" aria-label="大图小图切换">
-      <button type="button" class="view-btn active" data-view="large" aria-pressed="true">大图</button>
-      <button type="button" class="view-btn" data-view="small" aria-pressed="false">小图</button>
+    <div class="view-toggle" role="group" aria-label="视图">
+      <button type="button" class="view-btn active" data-view="large" aria-pressed="true" title="大图">
+        <span class="ico ico-lg"></span>
+      </button>
+      <button type="button" class="view-btn" data-view="small" aria-pressed="false" title="小图">
+        <span class="ico ico-sm"></span>
+      </button>
     </div>
   </header>
 
   <div id="scroller" class="scroller">
-    <!-- 唯一滚动内容：高度=总内容高，卡片 absolute 叠在里面 -->
     <div id="gallery" class="gallery view-large" role="list"></div>
   </div>
 
@@ -30,11 +40,13 @@
 
   <div id="lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="预览">
     <div class="lb-backdrop"></div>
-    <button type="button" class="lb-close" aria-label="关闭">×</button>
-    <button type="button" class="lb-nav lb-prev" aria-label="上一张">‹</button>
-    <button type="button" class="lb-nav lb-next" aria-label="下一张">›</button>
+    <button type="button" class="lb-close" aria-label="关闭"></button>
+    <button type="button" class="lb-nav lb-prev" aria-label="上一张"></button>
+    <button type="button" class="lb-nav lb-next" aria-label="下一张"></button>
     <div class="lb-stage">
-      <img id="lb-img" alt="" decoding="async" />
+      <div class="lb-frame">
+        <img id="lb-img" alt="" decoding="async" />
+      </div>
       <p id="lb-name" class="lb-name"></p>
     </div>
   </div>
