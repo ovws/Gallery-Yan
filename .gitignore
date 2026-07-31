@@ -9,3 +9,5 @@ node_modules/
 
 *.png
 
+# Build artifacts
+speed-insights.bundle.js
