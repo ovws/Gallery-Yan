@@ -1,5 +1,5 @@
 /**
- * Generate lightweight WebP thumbs for gallery grid.
+ * Generate thumbs + write width/height into images.json (prevents layout shift)
  * Usage: node scripts/gen-thumbs.js
  */
 const fs = require("fs");
@@ -34,15 +34,13 @@ async function main() {
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
     const srcPath = path.join(SRC_DIR, f);
-    const thumbName = f;
-    const thumbPath = path.join(THUMB_DIR, thumbName);
+    const thumbPath = path.join(THUMB_DIR, f);
     const srcRel = `images/${f}`;
-    const thumbRel = `images/thumbs/${thumbName}`;
+    const thumbRel = `images/thumbs/${f}`;
 
     const srcStat = fs.statSync(srcPath);
     totalSrc += srcStat.size;
 
-    // skip regenerate if thumb exists and is newer
     const need =
       !fs.existsSync(thumbPath) ||
       fs.statSync(thumbPath).mtimeMs < srcStat.mtimeMs;
@@ -60,6 +58,11 @@ async function main() {
         .toFile(thumbPath);
     }
 
+    const [srcMeta, thumbMeta] = await Promise.all([
+      sharp(srcPath).metadata(),
+      sharp(thumbPath).metadata(),
+    ]);
+
     const tStat = fs.statSync(thumbPath);
     totalThumb += tStat.size;
 
@@ -72,6 +75,10 @@ async function main() {
       caption: prev.caption || null,
       size: srcStat.size,
       thumbSize: tStat.size,
+      w: srcMeta.width || null,
+      h: srcMeta.height || null,
+      tw: thumbMeta.width || null,
+      th: thumbMeta.height || null,
     });
 
     if ((i + 1) % 30 === 0 || i === files.length - 1) {
@@ -82,12 +89,9 @@ async function main() {
   fs.writeFileSync(JSON_PATH, JSON.stringify(out, null, 2), "utf8");
   console.log("\nDone.");
   console.log(
-    `  originals: ${(totalSrc / 1e6).toFixed(1)} MB → thumbs: ${(totalThumb / 1e6).toFixed(1)} MB (${(
-      (totalThumb / totalSrc) *
-      100
-    ).toFixed(1)}%)`
+    `  originals: ${(totalSrc / 1e6).toFixed(1)} MB → thumbs: ${(totalThumb / 1e6).toFixed(1)} MB`
   );
-  console.log(`  entries: ${out.length}`);
+  console.log(`  entries: ${out.length} (with w/h + tw/th)`);
 }
 
 main().catch((e) => {

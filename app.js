@@ -1,24 +1,24 @@
 /**
- * 嫣 — simple gallery that just works
- * thumbs in list, full image in lightbox
+ * 嫣 — gallery with reserved aspect-ratio + progressive preload
+ * Pre-reserves space via tw/th so the wall does not jump while images load.
  */
 (function () {
   "use strict";
 
-  // kill broken service workers from older deploys
+  // drop legacy service workers / caches that could serve broken assets
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations().then(function (regs) {
       regs.forEach(function (r) {
         r.unregister();
       });
     });
-    if (window.caches) {
-      caches.keys().then(function (keys) {
-        keys.forEach(function (k) {
-          caches.delete(k);
-        });
+  }
+  if (window.caches) {
+    caches.keys().then(function (keys) {
+      keys.forEach(function (k) {
+        caches.delete(k);
       });
-    }
+    });
   }
 
   var wall = document.getElementById("wall");
@@ -34,6 +34,12 @@
 
   var list = [];
   var cur = 0;
+  var preloaded = Object.create(null);
+
+  /** how many thumbs to fully preload before revealing wall */
+  var BOOT_PRELOAD = 12;
+  /** keep this many items ahead preloading while scrolling */
+  var AHEAD = 8;
 
   function enc(src) {
     return String(src || "")
@@ -60,6 +66,17 @@
     return enc(item.src);
   }
 
+  /** Prefer thumb size; fall back to original; last resort 3:4 */
+  function dims(item) {
+    var w = item.tw || item.w || 3;
+    var h = item.th || item.h || 4;
+    if (!w || !h) {
+      w = 3;
+      h = 4;
+    }
+    return { w: w, h: h };
+  }
+
   function setMode(small) {
     wall.classList.toggle("wall-small", small);
     wall.classList.toggle("wall-large", !small);
@@ -67,6 +84,29 @@
     btnSmall.classList.toggle("on", small);
     btnLarge.setAttribute("aria-pressed", small ? "false" : "true");
     btnSmall.setAttribute("aria-pressed", small ? "true" : "false");
+  }
+
+  function preloadUrl(url) {
+    if (!url || preloaded[url]) {
+      return Promise.resolve(url);
+    }
+    return new Promise(function (resolve) {
+      var im = new Image();
+      im.decoding = "async";
+      im.onload = im.onerror = function () {
+        preloaded[url] = true;
+        resolve(url);
+      };
+      im.src = url;
+    });
+  }
+
+  function preloadRange(from, count) {
+    var jobs = [];
+    for (var i = from; i < from + count && i < list.length; i++) {
+      jobs.push(preloadUrl(thumbOf(list[i])));
+    }
+    return Promise.all(jobs);
   }
 
   function render() {
@@ -77,19 +117,40 @@
       (function (i) {
         var item = list[i];
         var t = titleOf(item);
+        var d = dims(item);
+        var src = thumbOf(item);
 
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "item";
         btn.setAttribute("aria-label", t || "图片 " + (i + 1));
+        // reserve space immediately — prevents column reflow / screen jump
+        btn.style.aspectRatio = d.w + " / " + d.h;
 
         var img = document.createElement("img");
-        img.src = thumbOf(item);
         img.alt = t || "";
-        img.loading = "lazy";
+        img.width = d.w;
+        img.height = d.h;
         img.decoding = "async";
-        // first screen a bit faster
-        if (i < 10) img.fetchPriority = "high";
+        img.draggable = false;
+
+        // already preloaded boot set → show immediately; others lazy
+        if (i < BOOT_PRELOAD || preloaded[src]) {
+          img.src = src;
+          img.className = "ready";
+          if (i < 8) img.fetchPriority = "high";
+        } else {
+          img.loading = "lazy";
+          img.dataset.src = src;
+          // transparent 1x1 keeps layout stable; real src set by IO
+          img.src =
+            "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+        }
+
+        img.addEventListener("load", function onLoad() {
+          if (img.dataset.src) return; // still placeholder
+          img.classList.add("ready");
+        });
 
         btn.appendChild(img);
 
@@ -109,6 +170,58 @@
     }
 
     wall.appendChild(frag);
+    observeLazy();
+    // warm the next batch after first paint
+    requestAnimationFrame(function () {
+      preloadRange(BOOT_PRELOAD, AHEAD);
+    });
+  }
+
+  function observeLazy() {
+    var nodes = wall.querySelectorAll("img[data-src]");
+    if (!nodes.length) return;
+
+    if (!("IntersectionObserver" in window)) {
+      nodes.forEach(function (img) {
+        img.src = img.dataset.src;
+        delete img.dataset.src;
+        img.classList.add("ready");
+      });
+      return;
+    }
+
+    var io = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          var img = entry.target;
+          var src = img.dataset.src;
+          if (!src) return;
+
+          // preload then swap once ready — no half-drawn flash / reflow
+          preloadUrl(src).then(function () {
+            if (img.dataset.src !== src) return;
+            img.src = src;
+            delete img.dataset.src;
+            img.classList.add("ready");
+          });
+
+          // also preload a few ahead of this index for smoother scroll
+          var btn = img.closest(".item");
+          if (btn && btn.parentNode) {
+            var idx = Array.prototype.indexOf.call(btn.parentNode.children, btn);
+            if (idx >= 0) preloadRange(idx + 1, AHEAD);
+          }
+
+          io.unobserve(img);
+        });
+      },
+      { rootMargin: "800px 0px", threshold: 0.01 }
+    );
+
+    nodes.forEach(function (img) {
+      io.observe(img);
+    });
   }
 
   function openLb(i) {
@@ -128,26 +241,16 @@
     var item = list[cur];
     if (!item) return;
     var t = titleOf(item);
-    // thumb first, then full
     var full = fullOf(item);
     var thumb = thumbOf(item);
-    lbImg.src = thumb;
     lbImg.alt = t;
     lbCap.textContent = t;
-    var hi = new Image();
-    hi.onload = function () {
+    lbImg.src = thumb;
+    preloadUrl(full).then(function () {
       if (list[cur] === item) lbImg.src = full;
-    };
-    hi.src = full;
-    // neighbors
-    preload(fullOf(list[(cur + 1) % list.length]));
-    preload(fullOf(list[(cur - 1 + list.length) % list.length]));
-  }
-
-  function preload(url) {
-    if (!url) return;
-    var im = new Image();
-    im.src = url;
+    });
+    preloadUrl(fullOf(list[(cur + 1) % list.length]));
+    preloadUrl(fullOf(list[(cur - 1 + list.length) % list.length]));
   }
 
   function nav(d) {
@@ -183,7 +286,9 @@
     if (e.key === "ArrowRight") nav(1);
   });
 
-  fetch("images.json?v=6", { cache: "no-store" })
+  statusEl.textContent = "准备图片…";
+
+  fetch("images.json?v=7", { cache: "no-store" })
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
@@ -193,12 +298,17 @@
       list = data.slice().sort(function (a, b) {
         return String(b.date || "").localeCompare(String(a.date || ""));
       });
-      statusEl.classList.add("hide");
-      statusEl.textContent = "";
-      render();
+
+      statusEl.textContent = "预加载首屏…";
+      // reserve structure after boot preload so first paint is stable
+      return preloadRange(0, Math.min(BOOT_PRELOAD, list.length)).then(function () {
+        statusEl.classList.add("hide");
+        statusEl.textContent = "";
+        render();
+      });
     })
     .catch(function (err) {
       console.error(err);
-      statusEl.textContent = "加载失败，请强制刷新（Ctrl+F5）后重试";
+      statusEl.textContent = "加载失败，请 Ctrl+F5 强制刷新后重试";
     });
 })();

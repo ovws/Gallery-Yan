@@ -10,6 +10,12 @@
     "build": "node -e \"console.log('static site — thumbs prebuilt, nothing to build')\""
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.3"
+  },
+  "dependencies": {
+    "sharp": "^0.35.3"
   }
 }
