@@ -1,31 +1,42 @@
 /**
- * 嫣 — full-width gallery
- * Grid uses thumbs; lightbox uses full images.
+ * 嫣 — virtualized grid gallery (performance-first)
+ * Only visible cards are in the DOM. Grid uses thumbs; lightbox uses full images.
  */
 (() => {
   "use strict";
 
+  const scroller = document.getElementById("scroller");
+  const spacer = document.getElementById("spacer");
   const galleryEl = document.getElementById("gallery");
   const loaderEl = document.getElementById("loader");
   const lightbox = document.getElementById("lightbox");
   const lbImg = document.getElementById("lb-img");
   const lbName = document.getElementById("lb-name");
-  const floatersEl = document.getElementById("floaters");
-  const cursorGlow = document.getElementById("cursor-glow");
-  const scrollProgress = document.getElementById("scroll-progress");
 
-  const TONES = ["tone-rose", "tone-gold", "tone-peach", ""];
-  const EAGER_COUNT = 12;
-
+  /** @type {Array<{src:string,thumb?:string,name?:string,date?:string,caption?:string}>} */
   let images = [];
   let current = 0;
   let viewMode = "large";
-  let reducedMotion = false;
+
+  // layout metrics
+  let cols = 1;
+  let cellW = 0;
+  let cellH = 0;
+  let gap = 8;
+  let pad = 10;
+  let totalRows = 0;
+  let scrollRaf = 0;
+  let resizeRaf = 0;
+
+  // virtual window
+  const ROW_BUFFER = 2;
+  /** @type {Map<number, HTMLElement>} */
+  const mounted = new Map();
   const preloadCache = new Set();
 
-  try {
-    reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch (_) {}
+  // aspect ratio for uniform cells (portrait-friendly, no reflow)
+  const ASPECT = 3 / 4; // w/h → height = width / ASPECT? wait: portrait is taller: h/w = 4/3
+  const ASPECT_H_OVER_W = 4 / 3;
 
   function assetUrl(src) {
     return String(src || "")
@@ -58,9 +69,38 @@
 
   function formatDate(dateStr) {
     if (!dateStr) return "";
-    const parts = String(dateStr).split("-");
-    if (parts.length < 3) return "";
-    return `${parts[0]}.${parts[1]}.${parts[2]}`;
+    const p = String(dateStr).split("-");
+    return p.length >= 3 ? `${p[0]}.${p[1]}.${p[2]}` : "";
+  }
+
+  function minColForMode() {
+    // match CSS clamps approximately for JS layout
+    const w = scroller.clientWidth - pad * 2;
+    if (viewMode === "small") {
+      if (w < 400) return 96;
+      if (w < 900) return Math.max(100, w * 0.18);
+      return 140;
+    }
+    if (w < 500) return 160;
+    if (w < 900) return Math.max(200, w * 0.28);
+    return 280;
+  }
+
+  function measure() {
+    const style = getComputedStyle(document.documentElement);
+    gap = parseFloat(style.getPropertyValue("--gap")) || 8;
+    pad = parseFloat(style.getPropertyValue("--pad")) || 10;
+
+    const innerW = Math.max(0, scroller.clientWidth - pad * 2);
+    const minCol = minColForMode();
+    cols = Math.max(1, Math.floor((innerW + gap) / (minCol + gap)));
+    cellW = (innerW - gap * (cols - 1)) / cols;
+    cellH = cellW * ASPECT_H_OVER_W;
+    totalRows = Math.ceil(images.length / cols) || 0;
+
+    const totalH = totalRows > 0 ? totalRows * cellH + (totalRows - 1) * gap : 0;
+    spacer.style.height = `${totalH}px`;
+    galleryEl.style.height = `${totalH}px`;
   }
 
   function setView(mode) {
@@ -72,184 +112,139 @@
       btn.classList.toggle("active", on);
       btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
+    measure();
+    syncWindow(true);
   }
 
-  function spawnFloaters() {
-    if (!floatersEl || reducedMotion) return;
-    // keep light — animated floaters can feel busy while scrolling
-    const symbols = ["♡", "✿", "✦"];
-    const n = window.innerWidth < 700 ? 3 : 5;
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < n; i++) {
-      const s = document.createElement("span");
-      s.textContent = symbols[i % symbols.length];
-      s.style.left = `${8 + Math.random() * 84}%`;
-      s.style.fontSize = `${0.7 + Math.random() * 0.7}rem`;
-      s.style.animationDuration = `${16 + Math.random() * 14}s`;
-      s.style.animationDelay = `${-Math.random() * 18}s`;
-      s.style.color = i % 2 === 0 ? "#ffb3c1" : "#ff7aa2";
-      frag.appendChild(s);
-    }
-    floatersEl.appendChild(frag);
-  }
-
-  function initCursorGlow() {
-    if (!cursorGlow || window.matchMedia("(pointer: coarse)").matches || reducedMotion) {
-      if (cursorGlow) cursorGlow.style.display = "none";
-      return;
-    }
-    let x = 0;
-    let y = 0;
-    let tx = 0;
-    let ty = 0;
-    let active = false;
-
-    const tick = () => {
-      x += (tx - x) * 0.14;
-      y += (ty - y) * 0.14;
-      cursorGlow.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-      if (Math.abs(tx - x) > 0.4 || Math.abs(ty - y) > 0.4) {
-        requestAnimationFrame(tick);
-      } else {
-        active = false;
-      }
-    };
-
-    window.addEventListener(
-      "pointermove",
-      (e) => {
-        tx = e.clientX;
-        ty = e.clientY;
-        if (!active) {
-          active = true;
-          requestAnimationFrame(tick);
-        }
-      },
-      { passive: true }
-    );
-  }
-
-  function initScrollProgress() {
-    if (!scrollProgress) return;
-    let ticking = false;
-    const update = () => {
-      ticking = false;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const p = max > 0 ? window.scrollY / max : 0;
-      scrollProgress.style.transform = `scaleX(${Math.min(1, Math.max(0, p))})`;
-    };
-    window.addEventListener(
-      "scroll",
-      () => {
-        if (!ticking) {
-          ticking = true;
-          requestAnimationFrame(update);
-        }
-      },
-      { passive: true }
-    );
-    update();
-  }
-
-  function createCard(item, i) {
+  function createCard(index) {
+    const item = images[index];
     const label = displayName(item);
     const date = formatDate(item.date);
-    const tone = TONES[i % TONES.length];
-    const thumb = assetUrl(thumbOf(item));
 
     const card = document.createElement("article");
-    card.className = "card" + (tone ? ` ${tone}` : "");
-    card.dataset.index = String(i);
+    card.className = "card";
+    card.dataset.index = String(index);
     card.tabIndex = 0;
-    card.setAttribute("role", "button");
+    card.setAttribute("role", "listitem");
     card.setAttribute("aria-label", label);
+
     const wrap = document.createElement("div");
     wrap.className = "card-img-wrap";
 
     const img = document.createElement("img");
     img.alt = label;
     img.decoding = "async";
+    img.loading = "lazy";
     img.draggable = false;
-    img.width = 480;
-
-    if (i < EAGER_COUNT) {
-      img.loading = "eager";
-      img.fetchPriority = i < 4 ? "high" : "auto";
-      img.src = thumb;
-    } else {
-      // native lazy only — no placeholder swap (avoids flash)
-      img.loading = "lazy";
-      img.src = thumb;
-    }
-
-    const veil = document.createElement("div");
-    veil.className = "card-veil";
-    veil.setAttribute("aria-hidden", "true");
-
-    const shine = document.createElement("div");
-    shine.className = "card-shine";
-    shine.setAttribute("aria-hidden", "true");
+    img.src = assetUrl(thumbOf(item));
 
     const nameEl = document.createElement("p");
     nameEl.className = "card-name";
     nameEl.append(document.createTextNode(label));
-    if (date) {
+    if (date && viewMode === "large") {
       const d = document.createElement("span");
       d.className = "card-date";
       d.textContent = date;
       nameEl.appendChild(d);
     }
-    nameEl.title = label;
 
-    wrap.append(img, veil, shine, nameEl);
+    wrap.append(img, nameEl);
     card.appendChild(wrap);
     return card;
   }
 
-  function render() {
-    galleryEl.innerHTML = "";
-
-    // single pass: fewer layout thrash than many rAF batches
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < images.length; i++) {
-      frag.appendChild(createCard(images[i], i));
-    }
-    galleryEl.appendChild(frag);
+  function positionCard(card, index) {
+    const row = Math.floor(index / cols);
+    const col = index % cols;
+    const x = col * (cellW + gap);
+    const y = row * (cellH + gap);
+    card.style.width = `${cellW}px`;
+    card.style.height = `${cellH}px`;
+    card.style.transform = `translate3d(${x}px, ${y}px, 0)`;
   }
 
-  function initGalleryEvents() {
-    galleryEl.addEventListener("click", (e) => {
-      const card = e.target.closest(".card");
-      if (!card || !galleryEl.contains(card)) return;
-      const idx = Number(card.dataset.index);
-      if (Number.isFinite(idx)) openLightbox(idx);
-    });
+  function visibleRange() {
+    const st = scroller.scrollTop;
+    const vh = scroller.clientHeight;
+    const rowH = cellH + gap;
+    if (rowH <= 0 || !images.length) return { start: 0, end: -1 };
 
-    galleryEl.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter" && e.key !== " ") return;
-      const card = e.target.closest(".card");
-      if (!card || !galleryEl.contains(card)) return;
-      e.preventDefault();
-      const idx = Number(card.dataset.index);
-      if (Number.isFinite(idx)) openLightbox(idx);
+    let startRow = Math.floor(st / rowH) - ROW_BUFFER;
+    let endRow = Math.ceil((st + vh) / rowH) + ROW_BUFFER;
+    startRow = Math.max(0, startRow);
+    endRow = Math.min(totalRows - 1, endRow);
+
+    const start = startRow * cols;
+    const end = Math.min(images.length - 1, (endRow + 1) * cols - 1);
+    return { start, end };
+  }
+
+  function syncWindow(force) {
+    const { start, end } = visibleRange();
+    if (end < start) {
+      // empty
+      for (const [idx, el] of mounted) {
+        el.remove();
+        mounted.delete(idx);
+      }
+      return;
+    }
+
+    // unmount outside window
+    for (const [idx, el] of mounted) {
+      if (idx < start || idx > end) {
+        el.remove();
+        mounted.delete(idx);
+      } else if (force) {
+        positionCard(el, idx);
+      }
+    }
+
+    // mount missing
+    const frag = document.createDocumentFragment();
+    let added = false;
+    for (let i = start; i <= end; i++) {
+      let el = mounted.get(i);
+      if (!el) {
+        el = createCard(i);
+        mounted.set(i, el);
+        frag.appendChild(el);
+        added = true;
+      }
+      positionCard(el, i);
+    }
+    if (added) galleryEl.appendChild(frag);
+  }
+
+  function onScroll() {
+    if (scrollRaf) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = 0;
+      syncWindow(false);
+    });
+  }
+
+  function onResize() {
+    if (resizeRaf) return;
+    resizeRaf = requestAnimationFrame(() => {
+      resizeRaf = 0;
+      measure();
+      syncWindow(true);
     });
   }
 
   function preloadUrl(url) {
     if (!url || preloadCache.has(url)) return;
     preloadCache.add(url);
-    const pre = new Image();
-    pre.decoding = "async";
-    pre.src = url;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
   }
 
   function preloadNeighbors() {
     if (!images.length) return;
-    const idxs = [
-      (current + 1) % images.length,
-      (current - 1 + images.length) % images.length,
-    ];
-    for (const idx of idxs) {
+    for (const d of [1, -1]) {
+      const idx = (current + d + images.length) % images.length;
       preloadUrl(assetUrl(fullOf(images[idx])));
     }
   }
@@ -258,28 +253,22 @@
     const item = images[current];
     if (!item) return;
     const label = displayName(item);
-    // show thumb first if full not cached, then upgrade
     const full = assetUrl(fullOf(item));
     const thumb = assetUrl(thumbOf(item));
     lbImg.alt = label;
     if (lbName) lbName.textContent = label;
 
-    if (lbImg.dataset.full === full && lbImg.src.endsWith(full.split("/").pop())) {
-      preloadNeighbors();
-      return;
-    }
-
-    lbImg.dataset.full = full;
-    // instant preview with thumb while full loads
-    if (!lbImg.src || lbImg.src.includes("thumbs") || !lbImg.complete) {
+    // show thumb instantly, upgrade to full
+    if (lbImg.dataset.full !== full) {
+      lbImg.dataset.full = full;
       lbImg.src = thumb;
+      const hi = new Image();
+      hi.decoding = "async";
+      hi.onload = () => {
+        if (lbImg.dataset.full === full) lbImg.src = full;
+      };
+      hi.src = full;
     }
-    const hi = new Image();
-    hi.decoding = "async";
-    hi.onload = () => {
-      if (lbImg.dataset.full === full) lbImg.src = full;
-    };
-    hi.src = full;
     preloadNeighbors();
   }
 
@@ -302,7 +291,7 @@
         delete lbImg.dataset.full;
         if (lbName) lbName.textContent = "";
       }
-    }, 280);
+    }, 200);
   }
 
   function nav(delta) {
@@ -311,8 +300,25 @@
     showLightboxImage();
   }
 
+  // events
   document.querySelectorAll(".view-btn").forEach((btn) => {
     btn.addEventListener("click", () => setView(btn.dataset.view));
+  });
+
+  galleryEl.addEventListener("click", (e) => {
+    const card = e.target.closest(".card");
+    if (!card) return;
+    const idx = Number(card.dataset.index);
+    if (Number.isFinite(idx)) openLightbox(idx);
+  });
+
+  galleryEl.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const card = e.target.closest(".card");
+    if (!card) return;
+    e.preventDefault();
+    const idx = Number(card.dataset.index);
+    if (Number.isFinite(idx)) openLightbox(idx);
   });
 
   lightbox.querySelector(".lb-backdrop").addEventListener("click", closeLightbox);
@@ -346,12 +352,17 @@
     { passive: true }
   );
 
+  scroller.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onResize, { passive: true });
+
+  function registerSW() {
+    if (!("serviceWorker" in navigator)) return;
+    // only on http(s) hosts (not file://)
+    if (!/^https?:$/.test(location.protocol)) return;
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  }
+
   async function init() {
-    setView("large");
-    initGalleryEvents();
-    spawnFloaters();
-    initCursorGlow();
-    initScrollProgress();
     try {
       const res = await fetch("images.json", { cache: "force-cache" });
       if (!res.ok) throw new Error(String(res.status));
@@ -359,20 +370,11 @@
       images = data.slice().sort((a, b) => {
         return (b.date || "").localeCompare(a.date || "") || (b.name || "").localeCompare(a.name || "");
       });
+
       loaderEl.classList.add("hidden");
-
-      // preload first few thumbs that will actually render first
-      for (let i = 0; i < Math.min(4, images.length); i++) {
-        const link = document.createElement("link");
-        link.rel = "preload";
-        link.as = "image";
-        link.href = assetUrl(thumbOf(images[i]));
-        link.type = "image/webp";
-        document.head.appendChild(link);
-      }
-
-      render();
-      if (images[0]) preloadUrl(assetUrl(fullOf(images[0])));
+      measure();
+      syncWindow(true);
+      registerSW();
     } catch (err) {
       console.error(err);
       loaderEl.innerHTML = "";

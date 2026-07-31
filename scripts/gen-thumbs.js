@@ -11,8 +11,8 @@ const SRC_DIR = path.join(ROOT, "images");
 const THUMB_DIR = path.join(ROOT, "images", "thumbs");
 const JSON_PATH = path.join(ROOT, "images.json");
 
-const MAX_W = 480;
-const QUALITY = 68;
+const MAX_W = 360;
+const QUALITY = 62;
 
 async function main() {
   fs.mkdirSync(THUMB_DIR, { recursive: true });
