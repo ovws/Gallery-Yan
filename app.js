@@ -16,13 +16,11 @@
 
   const TONES = ["tone-rose", "tone-gold", "tone-peach", ""];
   const EAGER_COUNT = 12;
-  const BATCH = 32;
 
   let images = [];
   let current = 0;
   let viewMode = "large";
   let reducedMotion = false;
-  let lazyIo = null;
   const preloadCache = new Set();
 
   try {
@@ -78,8 +76,9 @@
 
   function spawnFloaters() {
     if (!floatersEl || reducedMotion) return;
-    const symbols = ["♡", "✿", "✦", "❀"];
-    const n = window.innerWidth < 700 ? 4 : 6;
+    // keep light — animated floaters can feel busy while scrolling
+    const symbols = ["♡", "✿", "✦"];
+    const n = window.innerWidth < 700 ? 3 : 5;
     const frag = document.createDocumentFragment();
     for (let i = 0; i < n; i++) {
       const s = document.createElement("span");
@@ -164,12 +163,6 @@
     card.tabIndex = 0;
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", label);
-    if (!reducedMotion && i < 12) {
-      card.style.animationDelay = `${i * 0.018}s`;
-    } else {
-      card.classList.add("card-static");
-    }
-
     const wrap = document.createElement("div");
     wrap.className = "card-img-wrap";
 
@@ -178,28 +171,16 @@
     img.decoding = "async";
     img.draggable = false;
     img.width = 480;
-    img.sizes = viewMode === "small" ? "160px" : "420px";
 
     if (i < EAGER_COUNT) {
       img.loading = "eager";
       img.fetchPriority = i < 4 ? "high" : "auto";
       img.src = thumb;
-      img.classList.add("is-loaded");
     } else {
+      // native lazy only — no placeholder swap (avoids flash)
       img.loading = "lazy";
-      img.dataset.src = thumb;
-      // tiny transparent pixel to avoid broken icon; real src via IO
-      img.src =
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 4'%3E%3C/svg%3E";
+      img.src = thumb;
     }
-
-    img.addEventListener(
-      "load",
-      () => {
-        if (!img.dataset.src) img.classList.add("is-loaded");
-      },
-      { once: true }
-    );
 
     const veil = document.createElement("div");
     veil.className = "card-veil";
@@ -225,70 +206,15 @@
     return card;
   }
 
-  function ensureLazyIo() {
-    if (lazyIo || !("IntersectionObserver" in window)) return lazyIo;
-    lazyIo = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          const img = entry.target;
-          const src = img.dataset.src;
-          if (src) {
-            img.src = src;
-            img.removeAttribute("data-src");
-            img.addEventListener(
-              "load",
-              () => img.classList.add("is-loaded"),
-              { once: true }
-            );
-          }
-          lazyIo.unobserve(img);
-        }
-      },
-      { rootMargin: "600px 0px", threshold: 0.01 }
-    );
-    return lazyIo;
-  }
-
-  function observeLazyImages(root) {
-    const lazy = root.querySelectorAll("img[data-src]");
-    if (!lazy.length) return;
-
-    if (!("IntersectionObserver" in window)) {
-      lazy.forEach((img) => {
-        img.src = img.dataset.src;
-        img.removeAttribute("data-src");
-        img.classList.add("is-loaded");
-      });
-      return;
-    }
-
-    const io = ensureLazyIo();
-    lazy.forEach((img) => io.observe(img));
-  }
-
   function render() {
     galleryEl.innerHTML = "";
-    if (lazyIo) {
-      lazyIo.disconnect();
-      lazyIo = null;
+
+    // single pass: fewer layout thrash than many rAF batches
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < images.length; i++) {
+      frag.appendChild(createCard(images[i], i));
     }
-
-    let i = 0;
-    const next = () => {
-      const frag = document.createDocumentFragment();
-      const end = Math.min(i + BATCH, images.length);
-      for (; i < end; i++) {
-        frag.appendChild(createCard(images[i], i));
-      }
-      galleryEl.appendChild(frag);
-      observeLazyImages(galleryEl);
-
-      if (i < images.length) {
-        requestAnimationFrame(next);
-      }
-    };
-    next();
+    galleryEl.appendChild(frag);
   }
 
   function initGalleryEvents() {
