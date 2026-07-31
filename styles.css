@@ -7,9 +7,9 @@
   --muted: #c49aaa;
   --pink: #ff7aa8;
   --line: rgba(255, 150, 185, 0.16);
-  --pad: 2.2%;
-  --gap: 1.1%;
-  --top: 4.2rem;
+  --pad: 1%;
+  --gap: 0.45%;
+  --top: 3.4rem;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --linger: cubic-bezier(0.16, 1, 0.3, 1);
   --sx: 50%;
@@ -94,7 +94,7 @@ body {
   padding:
     env(safe-area-inset-top)
     max(var(--pad), env(safe-area-inset-right))
-    0.55rem
+    0
     max(var(--pad), env(safe-area-inset-left));
   background: linear-gradient(180deg, rgba(10, 4, 8, 0.92), rgba(10, 4, 8, 0.55));
   backdrop-filter: blur(16px) saturate(1.15);
@@ -103,33 +103,18 @@ body {
   border-image: linear-gradient(90deg, transparent, rgba(255, 130, 170, 0.3), transparent) 1;
 }
 
-.brand {
-  min-width: 0;
-}
-
-.brand-mark {
+.logo {
   font-family: "Ma Shan Zheng", "STKaiti", cursive;
-  font-size: clamp(0.95rem, 2.2vw, 1.15rem);
-  color: rgba(255, 170, 195, 0.75);
-  letter-spacing: 0.35em;
-  line-height: 1;
-  margin-bottom: 0.2rem;
-}
-
-.brand-title {
-  font-family: "Ma Shan Zheng", "STKaiti", cursive;
-  font-size: clamp(1.55rem, 4.5vw, 2.35rem);
-  font-weight: 400;
+  font-size: 1.75rem;
   letter-spacing: 0.12em;
-  line-height: 1.15;
-  color: transparent;
-  background: linear-gradient(115deg, #fff5f8 0%, #ffb3c8 42%, #ff8ab0 72%, #f0c4a0 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  filter: drop-shadow(0 0 22px rgba(255, 110, 150, 0.28));
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #ffb3c8;
+  text-decoration: none;
+  line-height: 1;
+  transition: filter 0.4s var(--ease);
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 12px rgba(255, 110, 150, 0.45));
 }
 
 .modes {
@@ -170,9 +155,9 @@ body {
   z-index: 1;
   width: 100%;
   padding:
-    1.2%
+    0.6%
     max(var(--pad), env(safe-area-inset-right))
-    calc(3% + env(safe-area-inset-bottom))
+    calc(2% + env(safe-area-inset-bottom))
     max(var(--pad), env(safe-area-inset-left));
 }
 
@@ -184,28 +169,25 @@ body {
 
 /* 大图：更宽的列 → 更少列、图更大 */
 .wall.is-large {
-  column-width: clamp(42%, 28vw, 22%);
-  /* fallback for browsers: use min width that scales */
-  column-width: clamp(200px, 22vw, 360px);
+  column-width: clamp(180px, 18vw, 300px);
 }
 
 /* 小图：更窄列 → 更密 */
 .wall.is-small {
-  column-width: clamp(28%, 14vw, 12%);
-  column-width: clamp(110px, 13vw, 180px);
+  column-width: clamp(100px, 11vw, 160px);
 }
 
 @media (max-width: 640px) {
   :root {
-    --pad: 3.2%;
-    --gap: 2.2%;
+    --pad: 1.6%;
+    --gap: 1%;
   }
   .wall.is-large {
     column-width: 100%;
     columns: 1;
   }
   .wall.is-small {
-    column-width: 46%;
+    column-width: 48%;
     columns: 2;
   }
 }
@@ -217,7 +199,7 @@ body {
   margin: 0 0 var(--gap);
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: clamp(12px, 1.2vw, 16px);
+  border-radius: clamp(10px, 1vw, 14px);
   overflow: hidden;
   background: var(--card);
   cursor: pointer;

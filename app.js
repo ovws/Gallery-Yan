@@ -342,7 +342,7 @@
 
   statusEl.textContent = "再等等…";
 
-  fetch("images.json?v=12", { cache: "no-store" })
+  fetch("images.json?v=13", { cache: "no-store" })
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
